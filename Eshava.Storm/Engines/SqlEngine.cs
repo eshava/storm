@@ -50,7 +50,7 @@ namespace Eshava.Storm.Engines
 						await ((DbConnection)commandDefinition.Connection).OpenAsync(commandDefinition.CancellationToken).ConfigureAwait(false);
 					}
 
-					reader = await command.ExecuteReaderAsync(GetBehavior(wasClosed, CommandBehavior.SequentialAccess | CommandBehavior.SingleResult | CommandBehavior.KeyInfo), commandDefinition.CancellationToken).ConfigureAwait(false);
+					reader = await command.ExecuteReaderAsync(GetBehavior(wasClosed, CommandBehavior.SingleResult | CommandBehavior.KeyInfo), commandDefinition.CancellationToken).ConfigureAwait(false);
 
 					var objectMapper = new ObjectMapper(reader, commandDefinition.CommandText);
 					var buffer = new List<T>();
