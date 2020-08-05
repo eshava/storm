@@ -21,6 +21,16 @@ namespace Eshava.Storm.Extensions
 				type = nullUnderlyingType;
 			}
 
+			if (type.ImplementsIEnumerable())
+			{
+				type = type.GetDataTypeFromIEnumerable();
+			}
+
+			if (type.IsArray)
+			{
+				type = type.GetElementType();
+			}
+
 			if (type.IsEnum && !DbTypeMap.Map.ContainsKey(type))
 			{
 				type = Enum.GetUnderlyingType(type);
@@ -124,6 +134,21 @@ namespace Eshava.Storm.Extensions
 			}
 
 			return type.GetInterfaces().Any(t => t == interfaceType);
+		}
+
+		internal static Type GetDataTypeFromIEnumerable(this Type type)
+		{
+			if (type == null)
+			{
+				throw new ArgumentNullException(nameof(type));
+			}
+
+			if (type.ImplementsIEnumerable())
+			{
+				type = type.GetGenericArguments()[0];
+			}
+
+			return type;
 		}
 	}
 }
