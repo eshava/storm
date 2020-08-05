@@ -80,6 +80,11 @@ namespace Eshava.Storm.Extensions
 				var tableName = match.Groups[2].Value.CleanTableName();
 				var alias = match.Groups[3].Value.CleanTableName();
 
+				if (alias.IsNullOrEmpty())
+				{
+					continue;
+				}
+
 				tableAliases.Add(alias, tableName);
 			}
 
@@ -91,7 +96,9 @@ namespace Eshava.Storm.Extensions
 			return tableName
 				.ToLower()
 				.Replace("[", "")
-				.Replace("]", "");
+				.Replace("]", "")
+				.Trim()
+				;
 		}
 	}
 }
