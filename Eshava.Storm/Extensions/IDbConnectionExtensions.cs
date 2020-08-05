@@ -26,7 +26,7 @@ namespace Eshava.Storm
 			return new SqlEngine().QueryAsync<T>(commandDefinition, null);
 		}
 
-		public static Task<IEnumerable<T>> QueryAsync<T>(this IDbConnection connection, Func<IObjectMapper, T> map, string sql, object parameter = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default)
+		public static Task<IEnumerable<T>> QueryAsync<T>(this IDbConnection connection, string sql, Func<IObjectMapper, T> map, object parameter = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default)
 		{
 			var commandDefinition = new CommandDefinition(
 				connection,
@@ -57,7 +57,7 @@ namespace Eshava.Storm
 			return new SqlEngine().QueryFirstOrDefaultAsync<T>(commandDefinition, null);
 		}
 
-		public static Task<T> QueryFirstOrDefaultAsync<T>(this IDbConnection connection, Func<IObjectMapper, T> map, string sql, object parameter = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default)
+		public static Task<T> QueryFirstOrDefaultAsync<T>(this IDbConnection connection, string sql, Func<IObjectMapper, T> map, object parameter = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default)
 		{
 			var commandDefinition = new CommandDefinition(
 				connection,
