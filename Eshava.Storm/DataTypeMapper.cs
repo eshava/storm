@@ -25,6 +25,15 @@ namespace Eshava.Storm
 				return null;
 			}
 
+			type = type.GetDataType();
+			if (type.IsEnum)
+			{
+				var enumInteger = Convert.ToInt32(value);
+				var enumValue = Enum.Parse(type, enumInteger.ToString());
+
+				return enumValue;
+			}
+
 			var mappedValue = Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
 
 			return mappedValue;
