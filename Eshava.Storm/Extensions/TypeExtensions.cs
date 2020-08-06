@@ -10,6 +10,10 @@ namespace Eshava.Storm.Extensions
 {
 	internal static class TypeExtensions
 	{
+		private static readonly Type _typeOfString = typeof(string);
+		private static readonly Type _typeOfGuid = typeof(Guid);
+		private static readonly Type _typeOfDateTime = typeof(DateTime);
+		private static readonly Type _typeOfByteArray = typeof(byte[]);
 
 		internal static DbType LookupDbType(this Type type, string name, bool demand, out ITypeHandler handler)
 		{
@@ -149,6 +153,23 @@ namespace Eshava.Storm.Extensions
 			}
 
 			return type;
+		}
+
+		internal static bool IsNoClass(this Type type)
+		{
+			var propertyType = type.GetDataType();
+
+			if (propertyType.IsPrimitive
+				|| propertyType.IsEnum
+				|| propertyType == _typeOfString
+				|| propertyType == _typeOfGuid
+				|| propertyType == _typeOfDateTime
+				|| propertyType == _typeOfByteArray)
+			{
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

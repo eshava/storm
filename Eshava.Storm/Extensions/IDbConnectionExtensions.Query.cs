@@ -9,7 +9,7 @@ using Eshava.Storm.Models;
 
 namespace Eshava.Storm
 {
-	public static class IDbConnectionExtensions
+	public static partial class IDbConnectionExtensions
 	{
 		public static Task<IEnumerable<T>> QueryAsync<T>(this IDbConnection connection, string sql, object parameter = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null, CancellationToken cancellationToken = default)
 		{

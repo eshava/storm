@@ -32,12 +32,12 @@ namespace Eshava.Storm.Models
 		/// <summary>
 		/// The command (sql or a stored-procedure name) to execute
 		/// </summary>
-		public string CommandText { get; }
+		public string CommandText { get; protected set; }
 
 		/// <summary>
 		/// The parameters associated with the command
 		/// </summary>
-		public object Parameters { get; }
+		public object Parameters { get; protected set; }
 
 		/// <summary>
 		/// The active transaction for the command
@@ -58,5 +58,27 @@ namespace Eshava.Storm.Models
 		/// For asynchronous operations, the cancellation-token
 		/// </summary>
 		public CancellationToken CancellationToken { get; }
+	}
+
+	internal class CommandDefinition<T> : CommandDefinition where T : class
+	{
+		public CommandDefinition(
+		IDbConnection connection,
+		T entity,
+		IDbTransaction transaction = null,
+		int? commandTimeout = null,
+		CancellationToken cancellationToken = default)
+			: base(connection, null, transaction: transaction, commandTimeout: commandTimeout, cancellationToken: cancellationToken)
+		{
+			Entity = entity;
+		}
+
+		public T Entity { get; set; }
+
+		public void UpdateCommand(string query, object parameters)
+		{
+			CommandText = query;
+			Parameters = parameters;
+		}
 	}
 }

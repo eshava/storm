@@ -14,12 +14,6 @@ namespace Eshava.Storm
 {
 	internal class ObjectMapper : IObjectMapper
 	{
-		private static readonly Type _typeOfString = typeof(string);
-		private static readonly Type _typeOfGuid = typeof(Guid);
-		private static readonly Type _typeOfDateTime = typeof(DateTime);
-		private static readonly Type _typeOfByteArray = typeof(byte[]);
-
-
 		private readonly DbDataReader _reader;
 		private readonly Dictionary<string, string> _tableAliases;
 		private readonly DataTypeMapper _dataTypeMapper;
@@ -58,7 +52,7 @@ namespace Eshava.Storm
 		}
 
 
-		private void PreProcessProperties(IList<ReaderAccessItem> readerAccessItems,  object instance, IEnumerable<(string Alias, string TableName)> requestedTableNames, string columnPrefix = "")
+		private void PreProcessProperties(IList<ReaderAccessItem> readerAccessItems, object instance, IEnumerable<(string Alias, string TableName)> requestedTableNames, string columnPrefix = "")
 		{
 			var propertyInfos = GetProperties(instance.GetType());
 
@@ -189,7 +183,7 @@ namespace Eshava.Storm
 
 				var propertyType = propertyInfo.PropertyType.GetDataType();
 
-				if (IsNoClass(propertyType))
+				if (propertyType.IsNoClass())
 				{
 					yield return propertyInfo;
 				}
@@ -336,27 +330,11 @@ namespace Eshava.Storm
 
 		private bool ShouldMapClass<T>()
 		{
-			return !IsNoClass(typeof(T));
+			return !typeof(T).IsNoClass();
 		}
 
-		private bool IsNoClass(Type type)
+		private void ExecuteReaderAccessItems(IEnumerable<ReaderAccessItem> readerAccessItems)
 		{
-			var propertyType = type.GetDataType();
-
-			if (propertyType.IsPrimitive
-				|| propertyType.IsEnum
-				|| propertyType == _typeOfString
-				|| propertyType == _typeOfGuid
-				|| propertyType == _typeOfDateTime
-				|| propertyType == _typeOfByteArray)
-			{
-				return true;
-			}
-
-			return false;
-		}
-
-		private void ExecuteReaderAccessItems(IEnumerable<ReaderAccessItem> readerAccessItems) {
 			readerAccessItems = readerAccessItems.OrderBy(rai => rai.Ordinal).ToList();
 
 			foreach (var item in readerAccessItems)
