@@ -9,7 +9,6 @@ namespace Eshava.Storm.Models
         public ParameterDirection ParameterDirection { get; set; }
         public DbType? DbType { get; set; }
         public int? Size { get; set; }
-        public IDbDataParameter AttachedParam { get; set; }
         public byte? Precision { get; set; }
         public byte? Scale { get; set; }
     }

@@ -35,9 +35,7 @@ namespace Eshava.Storm.Engines
 		private async Task<IEnumerable<T>> QueryThingsAsync<T>(CommandDefinition commandDefinition, Func<IObjectMapper, T> map)
 		{
 			var returnType = typeof(T);
-
-			var identity = new Identity(commandDefinition.CommandText, commandDefinition.CommandType, commandDefinition.Connection, returnType, commandDefinition.Parameters?.GetType());
-			var parameterReader = GetParameterReader(identity, commandDefinition.Parameters);
+			var parameterReader = GetParameterReader(commandDefinition.Parameters);
 			var wasClosed = commandDefinition.Connection.State == ConnectionState.Closed;
 
 			using (var command = (DbCommand)SetupCommand(commandDefinition, parameterReader))
@@ -83,8 +81,7 @@ namespace Eshava.Storm.Engines
 
 		private async Task<int> ExecuteSomethingAsync(CommandDefinition commandDefinition)
 		{
-			var identity = new Identity(commandDefinition.CommandText, commandDefinition.CommandType, commandDefinition.Connection, typeof(int), commandDefinition.Parameters?.GetType());
-			var parameterReader = GetParameterReader(identity, commandDefinition.Parameters);
+			var parameterReader = GetParameterReader(commandDefinition.Parameters);
 			var wasClosed = commandDefinition.Connection.State == ConnectionState.Closed;
 
 			using (var command = (DbCommand)SetupCommand(commandDefinition, parameterReader))
@@ -110,8 +107,7 @@ namespace Eshava.Storm.Engines
 
 		private async Task<T> ExecuteSomethingAsync<T>(CommandDefinition commandDefinition)
 		{
-			var identity = new Identity(commandDefinition.CommandText, commandDefinition.CommandType, commandDefinition.Connection, typeof(int), commandDefinition.Parameters?.GetType());
-			var parameterReader = GetParameterReader(identity, commandDefinition.Parameters);
+			var parameterReader = GetParameterReader(commandDefinition.Parameters);
 			var wasClosed = commandDefinition.Connection.State == ConnectionState.Closed;
 
 			using (var command = (DbCommand)SetupCommand(commandDefinition, parameterReader))
@@ -160,7 +156,7 @@ namespace Eshava.Storm.Engines
 				: null;
 		}
 
-		private static Action<IDbCommand, object> GetParameterReader(Identity identity, object exampleParameters)
+		private static Action<IDbCommand, object> GetParameterReader(object exampleParameters)
 		{
 			if (GetMultiExec(exampleParameters) != null)
 			{
@@ -170,7 +166,7 @@ namespace Eshava.Storm.Engines
 			return (cmd, obj) =>
 			{
 				var mapped = new ParameterCollector(obj);
-				mapped.AddParameters(cmd, identity);
+				mapped.AddParameters(cmd);
 			};
 		}
 

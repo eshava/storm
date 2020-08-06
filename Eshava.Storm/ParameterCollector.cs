@@ -1,10 +1,12 @@
-﻿using Eshava.Storm.Constants;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using Eshava.Storm.Constants;
 using Eshava.Storm.Extensions;
 using Eshava.Storm.Interfaces;
 using Eshava.Storm.Models;
-using System;
-using System.Collections.Generic;
-using System.Data;
 
 namespace Eshava.Storm
 {
@@ -17,7 +19,7 @@ namespace Eshava.Storm
 		/// </summary>
 		public ParameterCollector()
 		{
-			RemoveUnused = true;
+
 		}
 
 		/// <summary>
@@ -26,11 +28,8 @@ namespace Eshava.Storm
 		/// <param name="parameter">Can be an anonymous type or a <see cref="ParameterCollector"/></param>
 		public ParameterCollector(object parameter)
 		{
-			RemoveUnused = true;
 			AddParameter(parameter);
 		}
-
-		public bool RemoveUnused { get; set; }
 
 		public void AddParameter(object parameter)
 		{
@@ -62,6 +61,8 @@ namespace Eshava.Storm
 				{
 					Add(keyValuePair.Key, keyValuePair.Value, null, null, null);
 				}
+
+				return;
 			}
 
 			var parameterPropertyInfos = parameter.GetType().GetProperties();
@@ -83,100 +84,139 @@ namespace Eshava.Storm
 			};
 		}
 
-		public void AddParameters(IDbCommand command, Identity identity)
+		public void AddParameters(IDbCommand command)
 		{
 			foreach (var parameter in _parameters.Values)
 			{
-				var dbType = parameter.DbType;
-				var parameterName = parameter.Name.Clean();
-				var isCustomQueryParameter = parameter.Value is ICustomQueryParameter;
-
-				ITypeHandler handler = null;
-
-				if (dbType == null && parameter.Value != null && !isCustomQueryParameter)
-				{
-					dbType = parameter.Value.GetType().LookupDbType(parameterName, true, out handler);
-				}
-
-				if (isCustomQueryParameter)
-				{
-					((ICustomQueryParameter)parameter.Value).AddParameter(command, parameterName);
-				}
-				else
-				{
-					var addParameter = !command.Parameters.Contains(parameterName);
-					IDbDataParameter dataParameter;
-					
-					if (addParameter)
-					{
-						dataParameter = command.CreateParameter();
-						dataParameter.ParameterName = parameterName;
-					}
-					else
-					{
-						dataParameter = (IDbDataParameter)command.Parameters[parameterName];
-					}
-
-					dataParameter.Direction = parameter.ParameterDirection;
-					if (handler == null)
-					{
-						dataParameter.Value = parameter.Value.SanitizeParameterValue();
-						if (dbType != null && dataParameter.DbType != dbType)
-						{
-							dataParameter.DbType = dbType.Value;
-						}
-						var s = parameter.Value as string;
-						if (s?.Length <= DefaultValues.DBSTRINGDEFAULTLENGTH)
-						{
-							dataParameter.Size = DefaultValues.DBSTRINGDEFAULTLENGTH;
-						}
-						if (parameter.Size != null)
-						{
-							dataParameter.Size = parameter.Size.Value;
-						}
-
-						if (parameter.Precision != null)
-						{
-							dataParameter.Precision = parameter.Precision.Value;
-						}
-
-						if (parameter.Scale != null)
-						{
-							dataParameter.Scale = parameter.Scale.Value;
-						}
-					}
-					else
-					{
-						if (dbType != null)
-						{
-							dataParameter.DbType = dbType.Value;
-						}
-
-						if (parameter.Size != null)
-						{
-							dataParameter.Size = parameter.Size.Value;
-						}
-
-						if (parameter.Precision != null)
-						{
-							dataParameter.Precision = parameter.Precision.Value;
-						}
-
-						if (parameter.Scale != null)
-						{
-							dataParameter.Scale = parameter.Scale.Value;
-						}
-
-						handler.SetValue(dataParameter, parameter.Value ?? DBNull.Value);
-					}
-
-					if (addParameter)
-					{
-						command.Parameters.Add(dataParameter);
-					}
-					parameter.AttachedParam = dataParameter;
-				}
+				AddParameter(parameter, command);
 			}
+		}
+
+		private void AddParameter(ParameterInfo parameter, IDbCommand command)
+		{
+			var dbType = parameter.DbType;
+			var parameterName = parameter.Name.Clean();
+
+			if (parameter.Value is ICustomQueryParameter)
+			{
+				((ICustomQueryParameter)parameter.Value).AddParameter(command, parameterName);
+
+				return;
+			}
+
+			ITypeHandler handler = null;
+
+			if (dbType == null && parameter.Value != null)
+			{
+				dbType = parameter.Value.GetType().LookupDbType(parameterName, true, out handler);
+			}
+
+			if ((parameter.Value?.GetType().ImplementsIEnumerable() ?? false) || (parameter.Value?.GetType().IsArray ?? false))
+			{
+				AddEnumerationParameter(parameter, command, dbType);
+
+				return;
+			}
+
+			var addParameter = !command.Parameters.Contains(parameterName);
+			var dataParameter = GetOrCreateDataParameter(command, parameterName, addParameter);
+
+			if (handler == null)
+			{
+				dataParameter.Value = parameter.Value.SanitizeParameterValue();
+				if (dbType != null && dataParameter.DbType != dbType)
+				{
+					dataParameter.DbType = dbType.Value;
+				}
+
+				var s = parameter.Value as string;
+				if (s?.Length <= DefaultValues.DBSTRINGDEFAULTLENGTH)
+				{
+					dataParameter.Size = DefaultValues.DBSTRINGDEFAULTLENGTH;
+				}
+
+				SetBasicParameterInfos(parameter, dataParameter);
+			}
+			else
+			{
+				if (dbType != null)
+				{
+					dataParameter.DbType = dbType.Value;
+				}
+
+				SetBasicParameterInfos(parameter, dataParameter);
+
+				handler.SetValue(dataParameter, parameter.Value ?? DBNull.Value);
+			}
+
+			if (addParameter)
+			{
+				command.Parameters.Add(dataParameter);
+			}
+		}
+
+		private void AddEnumerationParameter(ParameterInfo parameter, IDbCommand command, DbType? dbType)
+		{
+			var parameterNames = new List<string>();
+			var valueEnumerable = (IEnumerable)parameter.Value;
+			var index = 0;
+
+			foreach (var value in valueEnumerable)
+			{
+				var newParameter = new ParameterInfo
+				{
+					Name = $"{parameter.Name}_p{index}",
+					Value = value,
+					DbType = dbType,
+					ParameterDirection = parameter.ParameterDirection
+				};
+
+				parameterNames.Add(newParameter.Name);
+				AddParameter(newParameter, command);
+				index++;
+			}
+
+			if (parameterNames.Count > 0)
+			{
+				command.CommandText = command.CommandText.Replace("@" + parameter.Name, $"({String.Join(",", parameterNames.Select(name => "@" + name))})");
+			}
+		}
+
+		private void SetBasicParameterInfos(ParameterInfo parameter, IDbDataParameter dataParameter)
+		{
+			dataParameter.Direction = parameter.ParameterDirection;
+
+			if (parameter.Size != null)
+			{
+				dataParameter.Size = parameter.Size.Value;
+			}
+
+			if (parameter.Precision != null)
+			{
+				dataParameter.Precision = parameter.Precision.Value;
+			}
+
+			if (parameter.Scale != null)
+			{
+				dataParameter.Scale = parameter.Scale.Value;
+			}
+		}
+
+		private IDbDataParameter GetOrCreateDataParameter(IDbCommand command, string parameterName, bool addParameter)
+		{
+			var dataParameter = default(IDbDataParameter);
+
+			if (addParameter)
+			{
+				dataParameter = command.CreateParameter();
+				dataParameter.ParameterName = parameterName;
+			}
+			else
+			{
+				dataParameter = (IDbDataParameter)command.Parameters[parameterName];
+			}
+
+			return dataParameter;
 		}
 
 		private void Add(KeyValuePair<string, ParameterInfo> keyValuePair)
