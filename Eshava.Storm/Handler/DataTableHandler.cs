@@ -3,7 +3,7 @@ using System.Data;
 using Eshava.Storm.Interfaces;
 using Eshava.Storm.QueryParameters;
 
-namespace Eshava.Storm.Models
+namespace Eshava.Storm.Handler
 {
 	internal class DataTableHandler : ITypeHandler
 	{
