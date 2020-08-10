@@ -274,6 +274,12 @@ namespace Eshava.Storm.Engines
 
 				if (propertyType.IsNoClass())
 				{
+					var databaseGenerated = propertyInfo.GetCustomAttribute<DatabaseGeneratedAttribute>();
+					if (databaseGenerated != default && databaseGenerated.DatabaseGeneratedOption != DatabaseGeneratedOption.None)
+					{
+						continue;
+					}
+
 					properties.Add((namePrefix, propertyInfo, entity));
 
 					continue;
@@ -294,7 +300,7 @@ namespace Eshava.Storm.Engines
 					}
 
 					properties.AddRange(GetProperties(propertyInfo.PropertyType, ownsOneEntity, $"{namePrefix}{propertyInfo.Name}_"));
-				}
+				}				
 			}
 
 			return properties;
