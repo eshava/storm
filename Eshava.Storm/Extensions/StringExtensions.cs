@@ -68,17 +68,35 @@ namespace Eshava.Storm.Extensions
 				return tableAliases;
 			}
 
-			if (!RegExStrings.TablesAliases.IsMatch(sql))
+			var hasMatchesAliases = RegExStrings.TablesAliases.IsMatch(sql);
+			var hasMatchesAliasesWithAS = RegExStrings.TablesAliasesWithAS.IsMatch(sql);
+
+			if (!hasMatchesAliases && !hasMatchesAliasesWithAS)
 			{
 				return tableAliases;
 			}
 
-			var matches = RegExStrings.TablesAliases.Matches(sql);
+			if (hasMatchesAliases)
+			{
+				var matches = RegExStrings.TablesAliases.Matches(sql);
+				ExecuteRegEx(matches, 3, tableAliases);
+			}
 
+			if (hasMatchesAliasesWithAS)
+			{
+				var matches = RegExStrings.TablesAliasesWithAS.Matches(sql);
+				ExecuteRegEx(matches, 4, tableAliases);
+			}
+
+			return tableAliases;
+		}
+
+		private static void ExecuteRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, string> tableAliases)
+		{
 			foreach (Match match in matches)
 			{
 				var tableName = match.Groups[2].Value.CleanTableName();
-				var alias = match.Groups[3].Value.CleanTableName();
+				var alias = match.Groups[secondGroupIndex].Value.CleanTableName();
 
 				if (alias.IsNullOrEmpty())
 				{
@@ -87,8 +105,6 @@ namespace Eshava.Storm.Extensions
 
 				tableAliases.Add(alias, tableName);
 			}
-
-			return tableAliases;
 		}
 
 		internal static string CleanTableName(this string tableName)
