@@ -196,6 +196,7 @@ namespace Eshava.Storm
 						yield return propertyInfo;
 					}
 
+					propertyInfo.PropertyType.LookupDbType("", false, out var _);
 					if (TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType))
 					{
 						yield return propertyInfo;

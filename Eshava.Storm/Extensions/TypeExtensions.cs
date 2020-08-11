@@ -60,19 +60,16 @@ namespace Eshava.Storm.Extensions
 			{
 				case "Microsoft.SqlServer.Types.SqlGeography":
 					TypeHandlerMap.Add(type, handler = new UdtTypeHandler("geography"));
+					
 					return DbType.Object;
 				case "Microsoft.SqlServer.Types.SqlGeometry":
 					TypeHandlerMap.Add(type, handler = new UdtTypeHandler("geometry"));
+					
 					return DbType.Object;
 				case "Microsoft.SqlServer.Types.SqlHierarchyId":
 					TypeHandlerMap.Add(type, handler = new UdtTypeHandler("hierarchyid"));
+				
 					return DbType.Object;
-			}
-
-			if (type.FullName.StartsWith("NetTopologySuite.Geometries."))
-			{
-				TypeHandlerMap.Add(type, handler = new UdtTypeHandler("geometry"));
-				return DbType.Object;
 			}
 
 			if (demand)

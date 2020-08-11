@@ -112,8 +112,8 @@ namespace Eshava.Storm.Engines
 			var firstColumn = true;
 			foreach (var property in properties)
 			{
-				if (keyColumns.Any(key => 
-					   key.Property.Name == property.Property.Name 
+				if (keyColumns.Any(key =>
+					   key.Property.Name == property.Property.Name
 					&& property.Prefix.IsNullOrEmpty()))
 				{
 					continue;
@@ -310,7 +310,13 @@ namespace Eshava.Storm.Engines
 					}
 
 					properties.AddRange(GetProperties(propertyInfo.PropertyType, ownsOneEntity, $"{namePrefix}{propertyInfo.Name}_"));
-				}				
+				}
+
+				propertyInfo.PropertyType.LookupDbType("", false, out var _);
+				if (TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType))
+				{
+					properties.Add((namePrefix, propertyInfo, entity));
+				}
 			}
 
 			return properties;
