@@ -52,6 +52,7 @@ namespace Eshava.Storm.Engines
 					sqlValues.Append(",");
 				}
 
+				sqlValues.Append("@");
 				if (!property.Prefix.IsNullOrEmpty())
 				{
 					sqlColumns.Append(property.Prefix);
@@ -60,7 +61,6 @@ namespace Eshava.Storm.Engines
 
 				var columnName = GetColumnName(property.Property);
 				sqlColumns.Append(columnName.Column);
-				sqlValues.Append("@");
 				sqlValues.Append(columnName.Property);
 
 				parameters.Add(new KeyValuePair<string, object>($"{property.Prefix}{columnName.Property}", property.Property.GetValue(property.Entity)));
