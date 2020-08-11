@@ -12,7 +12,6 @@ namespace Eshava.Storm.Extensions
 	{
 		private static readonly Type _typeOfString = typeof(string);
 		private static readonly Type _typeOfDecimal = typeof(decimal);
-		private static readonly Type _typeOfFloat = typeof(float);
 		private static readonly Type _typeOfGuid = typeof(Guid);
 		private static readonly Type _typeOfDateTime = typeof(DateTime);
 		private static readonly Type _typeOfByteArray = typeof(byte[]);
@@ -51,12 +50,12 @@ namespace Eshava.Storm.Extensions
 			{
 				return DbType.Binary;
 			}
-			
+
 			if (TypeHandlerMap.Map.TryGetValue(type, out handler))
 			{
 				return DbType.Object;
 			}
-			
+
 			switch (type.FullName)
 			{
 				case "Microsoft.SqlServer.Types.SqlGeography":
@@ -70,13 +69,18 @@ namespace Eshava.Storm.Extensions
 					return DbType.Object;
 			}
 
+			if (type.FullName.StartsWith("NetTopologySuite.Geometries."))
+			{
+				TypeHandlerMap.Add(type, handler = new UdtTypeHandler("geometry"));
+				return DbType.Object;
+			}
+
 			if (demand)
 			{
 				throw new NotSupportedException($"The member {name} of type {type.FullName} cannot be used as a parameter value");
 			}
 
 			return DbType.Object;
-
 		}
 
 		internal static TypeCode GetTypeCode(Type type)
@@ -164,8 +168,7 @@ namespace Eshava.Storm.Extensions
 			if (propertyType.IsPrimitive
 				|| propertyType.IsEnum
 				|| propertyType == _typeOfString
-				|| propertyType == _typeOfDecimal	
-				|| propertyType == _typeOfFloat	
+				|| propertyType == _typeOfDecimal
 				|| propertyType == _typeOfGuid
 				|| propertyType == _typeOfDateTime
 				|| propertyType == _typeOfByteArray)
