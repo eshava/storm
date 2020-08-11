@@ -18,7 +18,6 @@ namespace Eshava.Storm.Models
 			CommandText = commandText;
 			Parameters = parameters;
 			Transaction = transaction;
-			CommandText = commandText;
 			CommandTimeout = commandTimeout;
 			CommandType = commandType;
 			CancellationToken = cancellationToken;
