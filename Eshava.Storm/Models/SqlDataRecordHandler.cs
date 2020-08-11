@@ -9,6 +9,8 @@ namespace Eshava.Storm.Models
 {
 	internal class SqlDataRecordHandler : ITypeHandler
 	{
+		public bool ReadAsByteArray => false;
+
 		public object Parse(Type destinationType, object value)
 		{
 			throw new NotSupportedException();

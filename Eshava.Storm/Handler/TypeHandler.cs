@@ -10,6 +10,8 @@ namespace Eshava.Storm.Handler
 	/// <typeparam name="T">This <see cref="Type"/> this handler is for.</typeparam>
 	public abstract class TypeHandler<T> : ITypeHandler
 	{
+		public virtual bool ReadAsByteArray => false;
+
 		/// <summary>
 		/// Assign the value of a parameter before a command executes
 		/// </summary>

@@ -8,6 +8,8 @@ namespace Eshava.Storm.Interfaces
 	/// </summary>
 	public interface ITypeHandler
 	{
+		bool ReadAsByteArray { get; }
+
 		/// <summary>
 		/// Assign the value of a parameter before a command executes
 		/// </summary>

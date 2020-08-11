@@ -9,7 +9,9 @@ namespace Eshava.Storm.Models
 	internal class UdtTypeHandler : ITypeHandler
 	{
 		private readonly string _udtTypeName;
-		
+
+		public bool ReadAsByteArray => false;
+
 		public UdtTypeHandler(string udtTypeName)
 		{
 			if (udtTypeName.IsNullOrEmpty())

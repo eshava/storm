@@ -345,9 +345,37 @@ namespace Eshava.Storm
 
 			foreach (var item in readerAccessItems)
 			{
-				var cellValue = _reader[item.Ordinal];
+				var cellValue = default(object);
+				if (TypeHandlerMap.Map.ContainsKey(item.PropertyInfo.PropertyType))
+				{
+					cellValue = GetValueByTypeHandler(item.PropertyInfo.PropertyType, TypeHandlerMap.Map[item.PropertyInfo.PropertyType], item.Ordinal);
+				}
+				else
+				{
+					cellValue = _reader[item.Ordinal];
+				}
+
 				item.PropertyInfo.SetValue(item.Instance, _dataTypeMapper.Map(item.PropertyInfo.PropertyType, cellValue));
 			}
+		}
+
+		private object GetValueByTypeHandler(Type type, ITypeHandler typeHandler, int ordinal)
+		{
+			if (!typeHandler.ReadAsByteArray)
+			{
+				return _reader[ordinal];
+			}
+
+			if (_reader.IsDBNull(ordinal))
+			{
+				return null;
+			}
+
+			var size = _reader.GetBytes(ordinal, 0, null, 0, 0); 
+			var result = new byte[size];
+			_reader.GetBytes(ordinal, 0, result, 0, result.Length);
+
+			return typeHandler.Parse(type, result);
 		}
 	}
 }

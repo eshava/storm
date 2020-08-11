@@ -55,23 +55,7 @@ namespace Eshava.Storm.Extensions
 			{
 				return DbType.Object;
 			}
-
-			switch (type.FullName)
-			{
-				case "Microsoft.SqlServer.Types.SqlGeography":
-					TypeHandlerMap.Add(type, handler = new UdtTypeHandler("geography"));
-					
-					return DbType.Object;
-				case "Microsoft.SqlServer.Types.SqlGeometry":
-					TypeHandlerMap.Add(type, handler = new UdtTypeHandler("geometry"));
-					
-					return DbType.Object;
-				case "Microsoft.SqlServer.Types.SqlHierarchyId":
-					TypeHandlerMap.Add(type, handler = new UdtTypeHandler("hierarchyid"));
-				
-					return DbType.Object;
-			}
-
+			
 			if (demand)
 			{
 				throw new NotSupportedException($"The member {name} of type {type.FullName} cannot be used as a parameter value");

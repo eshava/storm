@@ -7,6 +7,8 @@ namespace Eshava.Storm.Handler
 {
 	internal class DataTableHandler : ITypeHandler
 	{
+		public bool ReadAsByteArray => false;
+
 		public object Parse(Type destinationType, object value)
 		{
 			throw new NotImplementedException();
