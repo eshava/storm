@@ -195,6 +195,11 @@ namespace Eshava.Storm
 					{
 						yield return propertyInfo;
 					}
+
+					if (TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType))
+					{
+						yield return propertyInfo;
+					}
 				}
 			}
 		}

@@ -11,6 +11,7 @@ namespace Eshava.Storm.Extensions
 	internal static class TypeExtensions
 	{
 		private static readonly Type _typeOfString = typeof(string);
+		private static readonly Type _typeOfDecimal = typeof(string);
 		private static readonly Type _typeOfGuid = typeof(Guid);
 		private static readonly Type _typeOfDateTime = typeof(DateTime);
 		private static readonly Type _typeOfByteArray = typeof(byte[]);
@@ -162,6 +163,7 @@ namespace Eshava.Storm.Extensions
 			if (propertyType.IsPrimitive
 				|| propertyType.IsEnum
 				|| propertyType == _typeOfString
+				|| propertyType == _typeOfDecimal	
 				|| propertyType == _typeOfGuid
 				|| propertyType == _typeOfDateTime
 				|| propertyType == _typeOfByteArray)

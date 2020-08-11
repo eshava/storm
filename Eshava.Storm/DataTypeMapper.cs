@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using Eshava.Storm.Extensions;
+using Eshava.Storm.Models;
 
 namespace Eshava.Storm
 {
@@ -33,10 +34,14 @@ namespace Eshava.Storm
 
 				return enumValue;
 			}
+			else if (TypeHandlerMap.Map.ContainsKey(type))
+			{
+				var handler = TypeHandlerMap.Map[type];
 
-			var mappedValue = Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
+				return handler.Parse(type, value);
+			}
 
-			return mappedValue;
+			return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
 		}
 	}
 }
