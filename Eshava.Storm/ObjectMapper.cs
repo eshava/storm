@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
@@ -12,7 +11,7 @@ using Eshava.Storm.Models;
 
 namespace Eshava.Storm
 {
-	internal class ObjectMapper : IObjectMapper
+	internal class ObjectMapper : IObjectMapper, IObjectGenerator
 	{
 		private readonly DbDataReader _reader;
 		private readonly Dictionary<string, string> _tableAliases;
@@ -51,6 +50,32 @@ namespace Eshava.Storm
 			return _dataTypeMapper.Map<T>(cellValue);
 		}
 
+		public T CreateEmptyInstance<T>()
+		{
+			return (T)CreateEmptyInstance(typeof(T));
+		}
+
+		private object CreateEmptyInstance(Type type)
+		{
+			var entity = Activator.CreateInstance(type);
+			var propertyInfos = GetProperties(type);
+
+			foreach (var propertyInfo in propertyInfos)
+			{
+				var propertyType = propertyInfo.PropertyType.GetDataType();
+				if (!propertyType.IsClass())
+				{
+					continue;
+				}
+
+				if (propertyInfo.IsOwnsOne())
+				{
+					propertyInfo.SetValue(entity, CreateEmptyInstance(propertyType));
+				}
+			}
+
+			return entity;
+		}
 
 		private void PreProcessProperties(IList<ReaderAccessItem> readerAccessItems, object instance, IEnumerable<(string Alias, string TableName)> requestedTableNames, string columnPrefix = "")
 		{
@@ -59,18 +84,14 @@ namespace Eshava.Storm
 			foreach (var propertyInfo in propertyInfos)
 			{
 				var propertyType = propertyInfo.PropertyType.GetDataType();
-				if (propertyType.IsClass())
+				if (propertyType.IsClass() && propertyInfo.IsOwnsOne())
 				{
-					var ownsOne = propertyInfo.GetCustomAttribute<OwnsOneAttribute>();
-					if (ownsOne != default)
-					{
-						var ownsOneInstance = Activator.CreateInstance(propertyType);
-						propertyInfo.SetValue(instance, ownsOneInstance);
-						PreProcessProperties(readerAccessItems, ownsOneInstance, requestedTableNames, GetPropertyName(propertyInfo).ToLower() + "_");
-					}
+					var ownsOneInstance = Activator.CreateInstance(propertyType);
+					propertyInfo.SetValue(instance, ownsOneInstance);
+					PreProcessProperties(readerAccessItems, ownsOneInstance, requestedTableNames, propertyInfo.GetColumnName().ToLower() + "_");
 				}
 
-				var columnName = columnPrefix + GetPropertyName(propertyInfo).ToLower();
+				var columnName = columnPrefix + propertyInfo.GetColumnName().ToLower();
 
 				if (!_resultTableNames.Any() || !requestedTableNames.Any())
 				{
@@ -159,17 +180,6 @@ namespace Eshava.Storm
 			}
 		}
 
-		private string GetPropertyName(PropertyInfo propertyInfo)
-		{
-			var column = propertyInfo.GetCustomAttribute<ColumnAttribute>();
-			if (column != default)
-			{
-				return column.Name;
-			}
-
-			return propertyInfo.Name;
-		}
-
 		private IEnumerable<PropertyInfo> GetProperties(Type dataType)
 		{
 			var propertyInfos = dataType.GetProperties();
@@ -232,6 +242,11 @@ namespace Eshava.Storm
 
 		private void CalculateTableAliasUsage(string sql)
 		{
+			if (sql.IsNullOrEmpty())
+			{
+				return;
+			}
+
 			sql = sql.Replace("\r", "")
 					 .Replace("\n", "")
 					 .Replace("\t", " ")
@@ -371,7 +386,7 @@ namespace Eshava.Storm
 				return null;
 			}
 
-			var size = _reader.GetBytes(ordinal, 0, null, 0, 0); 
+			var size = _reader.GetBytes(ordinal, 0, null, 0, 0);
 			var result = new byte[size];
 			_reader.GetBytes(ordinal, 0, result, 0, result.Length);
 

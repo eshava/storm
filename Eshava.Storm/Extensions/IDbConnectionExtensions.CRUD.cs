@@ -17,7 +17,7 @@ namespace Eshava.Storm
 				commandTimeout,
 				cancellationToken);
 
-			new CRUDCommandEngine().ProcessInsertRequest(commandDefinition);
+			new CRUDCommandEngine(null).ProcessInsertRequest(commandDefinition);
 
 			return new SqlEngine().ExecuteScalarAsync<K>(commandDefinition);
 		}
@@ -31,7 +31,24 @@ namespace Eshava.Storm
 				commandTimeout,
 				cancellationToken);
 
-			new CRUDCommandEngine().ProcessUpdateRequest(commandDefinition);
+			new CRUDCommandEngine(null).ProcessUpdateRequest(commandDefinition);
+
+			var result = await new SqlEngine().ExecuteAsync(commandDefinition);
+
+			return result == 1;
+		}
+
+		public static async Task<bool> UpdatePartialAsync<T>(this IDbConnection connection, object entityToUpdate, IDbTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+		{
+			var commandDefinition = new CommandDefinition<T>(
+				connection,
+				null,
+				transaction,
+				commandTimeout,
+				cancellationToken);
+
+			var objectMapper = new ObjectMapper(null, null);
+			new CRUDCommandEngine(objectMapper).ProcessUpdateRequest(commandDefinition, entityToUpdate);
 
 			var result = await new SqlEngine().ExecuteAsync(commandDefinition);
 
@@ -47,7 +64,7 @@ namespace Eshava.Storm
 				commandTimeout,
 				cancellationToken);
 
-			new CRUDCommandEngine().ProcessDeleteRequest(commandDefinition);
+			new CRUDCommandEngine(null).ProcessDeleteRequest(commandDefinition);
 
 			var result = await new SqlEngine().ExecuteAsync(commandDefinition);
 
