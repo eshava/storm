@@ -14,18 +14,14 @@ namespace Eshava.Storm
 	internal class ObjectMapper : IObjectMapper, IObjectGenerator
 	{
 		private readonly DbDataReader _reader;
-		private readonly Dictionary<string, string> _tableAliases;
 		private readonly DataTypeMapper _dataTypeMapper;
-		private Dictionary<string, int> _aliasOccurrences;
-		private Dictionary<string, IList<int>> _columnCache;
-		private IEnumerable<string> _resultTableNames;
+		private TableAnalysisResult _tableAnalysisResult;
 
 		public ObjectMapper(DbDataReader reader, string sql)
 		{
 			_dataTypeMapper = new DataTypeMapper();
 			_reader = reader;
-			_tableAliases = sql.GetTableAliases();
-			CalculateTableAliasUsage(sql);
+			SetTableAnalysisResult(sql);
 		}
 
 		public T Map<T>(string tableAlias = null)
@@ -93,23 +89,23 @@ namespace Eshava.Storm
 
 				var columnName = columnPrefix + propertyInfo.GetColumnName().ToLower();
 
-				if (!_resultTableNames.Any() || !requestedTableNames.Any())
+				if (!_tableAnalysisResult.ResultTableNames.Any() || !requestedTableNames.Any())
 				{
 					// No result analyse result available
-					if (!_columnCache.ContainsKey(columnName))
+					if (!_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
 					{
-						var columnNew = _columnCache.Keys.FirstOrDefault(c => c.EndsWith("." + columnName));
+						var columnNew = _tableAnalysisResult.ColumnCache.Keys.FirstOrDefault(c => c.EndsWith("." + columnName));
 						if (!columnNew.IsNullOrEmpty())
 						{
 							columnName = columnNew;
 						}
 					}
 
-					if (_columnCache.ContainsKey(columnName))
+					if (_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
 					{
 						readerAccessItems.Add(new ReaderAccessItem
 						{
-							Ordinal = _columnCache[columnName].Last(),
+							Ordinal = _tableAnalysisResult.ColumnCache[columnName].Last(),
 							Instance = instance,
 							PropertyInfo = propertyInfo
 						});
@@ -123,20 +119,20 @@ namespace Eshava.Storm
 				{
 					var fullColumnName = $"{requestedTableName.TableName}.{columnName}";
 
-					if (!_columnCache.ContainsKey(fullColumnName))
+					if (!_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
 					{
 						continue;
 					}
 
 					columnFound = true;
-					if (!_aliasOccurrences.ContainsKey(requestedTableName.Alias))
+					if (!_tableAnalysisResult.AliasOccurrences.ContainsKey(requestedTableName.Alias))
 					{
 						if (requestedTableName.Alias == requestedTableName.TableName)
 						{
 							// Alias is an table name
 							readerAccessItems.Add(new ReaderAccessItem
 							{
-								Ordinal = _columnCache[fullColumnName].Last(),
+								Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
 								Instance = instance,
 								PropertyInfo = propertyInfo
 							});
@@ -147,8 +143,8 @@ namespace Eshava.Storm
 						continue;
 					}
 
-					var aliasOccurrence = _aliasOccurrences[requestedTableName.Alias];
-					if (aliasOccurrence >= _columnCache[fullColumnName].Count)
+					var aliasOccurrence = _tableAnalysisResult.AliasOccurrences[requestedTableName.Alias];
+					if (aliasOccurrence >= _tableAnalysisResult.ColumnCache[fullColumnName].Count)
 					{
 						// Skip if correct column occurrence could not be found
 
@@ -157,7 +153,7 @@ namespace Eshava.Storm
 
 					readerAccessItems.Add(new ReaderAccessItem
 					{
-						Ordinal = _columnCache[fullColumnName][aliasOccurrence],
+						Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence],
 						Instance = instance,
 						PropertyInfo = propertyInfo
 					});
@@ -167,11 +163,11 @@ namespace Eshava.Storm
 				{
 					var fullColumnName = $"none.{columnName}";
 
-					if (_columnCache.ContainsKey(fullColumnName))
+					if (_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
 					{
 						readerAccessItems.Add(new ReaderAccessItem
 						{
-							Ordinal = _columnCache[fullColumnName].Last(),
+							Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
 							Instance = instance,
 							PropertyInfo = propertyInfo
 						});
@@ -182,6 +178,13 @@ namespace Eshava.Storm
 
 		private IEnumerable<PropertyInfo> GetProperties(Type dataType)
 		{
+			var cacheResult = ReaderInformationCache.GetReaderProperties(dataType);
+			if (cacheResult?.Any() ?? false)
+			{
+				return cacheResult;
+			}
+
+			var result = new List<PropertyInfo>();
 			var propertyInfos = dataType.GetProperties();
 
 			foreach (var propertyInfo in propertyInfos)
@@ -195,7 +198,7 @@ namespace Eshava.Storm
 
 				if (propertyType.IsNoClass())
 				{
-					yield return propertyInfo;
+					result.Add(propertyInfo);
 				}
 
 				if (propertyType.IsClass())
@@ -203,16 +206,20 @@ namespace Eshava.Storm
 					var ownsOne = propertyInfo.GetCustomAttribute<OwnsOneAttribute>();
 					if (ownsOne != default)
 					{
-						yield return propertyInfo;
+						result.Add(propertyInfo);
 					}
 
 					propertyInfo.PropertyType.LookupDbType("", false, out var _);
 					if (TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType))
 					{
-						yield return propertyInfo;
+						result.Add(propertyInfo);
 					}
 				}
 			}
+
+			ReaderInformationCache.AddType(dataType, result);
+
+			return result;
 		}
 
 		private IEnumerable<(string Alias, string TableName)> GetTableNamesFromAlias(string tableAlias)
@@ -227,11 +234,11 @@ namespace Eshava.Storm
 			{
 				var tableAliasName = alias.Trim().CleanTableName();
 
-				if (_tableAliases.ContainsKey(tableAliasName))
+				if (_tableAnalysisResult.TableAliases.ContainsKey(tableAliasName))
 				{
-					tableAliases.Add((tableAliasName, _tableAliases[tableAliasName]));
+					tableAliases.Add((tableAliasName, _tableAnalysisResult.TableAliases[tableAliasName]));
 				}
-				else if (_tableAliases.Values.Any(t => t == tableAliasName))
+				else if (_tableAnalysisResult.TableAliases.Values.Any(t => t == tableAliasName))
 				{
 					tableAliases.Add((tableAliasName, tableAliasName));
 				}
@@ -240,11 +247,34 @@ namespace Eshava.Storm
 			return tableAliases;
 		}
 
-		private void CalculateTableAliasUsage(string sql)
+		private void SetTableAnalysisResult(string sql)
+		{
+			var sqlHashCode = sql.GetHashCode();
+			var tableAnalysisResult = ReaderInformationCache.GetReaderTableAnalysisResult(sqlHashCode);
+			if (tableAnalysisResult != default)
+			{
+				_tableAnalysisResult = tableAnalysisResult;
+			}
+
+			var tableAliases = sql.GetTableAliases();
+			var aliasOccurrences = CalculateTableAliasUsage(sql, tableAliases);
+
+			tableAnalysisResult = new TableAnalysisResult
+			{
+				TableAliases = tableAliases,
+				AliasOccurrences = aliasOccurrences
+			};
+
+			ReaderInformationCache.AddTableAnalysisResult(sqlHashCode, tableAnalysisResult);
+
+			_tableAnalysisResult = tableAnalysisResult;
+		}
+
+		private Dictionary<string, int> CalculateTableAliasUsage(string sql, Dictionary<string, string> tableAliases)
 		{
 			if (sql.IsNullOrEmpty())
 			{
-				return;
+				return null;
 			}
 
 			sql = sql.Replace("\r", "")
@@ -252,24 +282,26 @@ namespace Eshava.Storm
 					 .Replace("\t", " ")
 					 .ToLower();
 
-			var aliasOccurrences = _tableAliases
+			var aliasOccurrences = tableAliases
 				.Select(pair => (Alias: pair.Key, Table: pair.Value, Index: sql.IndexOf(pair.Key + ".")))
 				.GroupBy(t => t.Table);
 
-			_aliasOccurrences = new Dictionary<string, int>();
+			var resultAliasOccurrences = new Dictionary<string, int>();
 			foreach (var tableGroup in aliasOccurrences)
 			{
 				var aliasOccurrencesForTable = tableGroup.OrderBy(t => t.Index).ToList();
 				for (var index = 0; index < aliasOccurrencesForTable.Count; index++)
 				{
-					_aliasOccurrences.Add(aliasOccurrencesForTable[index].Alias, index);
+					resultAliasOccurrences.Add(aliasOccurrencesForTable[index].Alias, index);
 				}
 			}
+
+			return resultAliasOccurrences;
 		}
 
 		private void CalculateColumnCache()
 		{
-			if (_columnCache != default)
+			if (_tableAnalysisResult.ColumnCache != default)
 			{
 				return;
 			}
@@ -345,8 +377,8 @@ namespace Eshava.Storm
 				}
 			}
 
-			_columnCache = columnCache;
-			_resultTableNames = resultTableNames.Distinct().ToList();
+			_tableAnalysisResult.ColumnCache = columnCache;
+			_tableAnalysisResult.ResultTableNames = resultTableNames.Distinct().ToList();
 		}
 
 		private bool ShouldMapClass<T>()
