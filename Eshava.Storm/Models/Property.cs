@@ -9,5 +9,6 @@ namespace Eshava.Storm.Models
 		public PropertyInfo PropertyInfo { get; set; }
 		public object Entity { get; set; }
 		public ITypeHandler TypeHandler { get; set; }
+		public string ColumnName { get; set; }
 	}
 }

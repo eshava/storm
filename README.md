@@ -289,7 +289,7 @@ Delete data
 ------------
 
 ```csharp
-    public static async Task<bool> DeleteAsync<T>(this IDbConnection connection, T entityToDelete, IDbTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+public static async Task<bool> DeleteAsync<T>(this IDbConnection connection, T entityToDelete, IDbTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
 ```
 
 
@@ -323,5 +323,21 @@ The attribute `DatabaseGeneratedAttribute` allows you also to mark properties as
 
 ## Configuration via fluid api pattern
 
-coming soon
+Instead of defining the configuration of the classes via attributes, it is possible to control them via an EntityTypeConfiguration
+The configuration is based on the behaviour of the Entity Framework Code.
 
+Define:
+```csharp
+public class AlphaTypeConfiguration : IEntityTypeConfiguration<Alpha>
+{
+    public void Configure(EntityTypeBuilder<Alpha> builder)
+    {
+	    ...
+    }
+}
+```
+
+Register:
+```csharp
+Eshava.Storm.MetaData.TypeAnalyzer.AddType(new AlphaTypeConfiguration());
+```

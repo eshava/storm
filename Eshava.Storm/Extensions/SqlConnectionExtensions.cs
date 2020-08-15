@@ -5,7 +5,7 @@ using Eshava.Storm.Engines;
 using Eshava.Storm.Models;
 using Microsoft.Data.SqlClient;
 
-namespace Eshava.Storm.Extensions
+namespace Eshava.Storm
 {
 	public static class SqlConnectionExtensions
 	{

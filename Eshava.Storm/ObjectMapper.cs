@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
-using System.Reflection;
-using Eshava.Storm.Attributes;
 using Eshava.Storm.Extensions;
 using Eshava.Storm.Interfaces;
+using Eshava.Storm.MetaData;
+using Eshava.Storm.MetaData.Models;
 using Eshava.Storm.Models;
 
 namespace Eshava.Storm
@@ -34,7 +34,12 @@ namespace Eshava.Storm
 				var requestedTableNames = GetTableNamesFromAlias(tableAlias);
 				var readerAccessItems = new List<ReaderAccessItem>();
 
-				PreProcessProperties(readerAccessItems, resultObject, requestedTableNames);
+				PreProcessProperties(new PreProcessPropertyInformation
+				{
+					ReaderAccessItems = readerAccessItems,
+					Instance = resultObject,
+					RequestedTableNames = requestedTableNames
+				});
 
 				ExecuteReaderAccessItems(readerAccessItems);
 
@@ -53,43 +58,43 @@ namespace Eshava.Storm
 
 		private object CreateEmptyInstance(Type type)
 		{
-			var entity = Activator.CreateInstance(type);
-			var propertyInfos = GetProperties(type);
+			var entity = EntityCache.GetEntity(type) ?? TypeAnalyzer.AnalyzeType(type);
+			var instance = Activator.CreateInstance(type);
 
-			foreach (var propertyInfo in propertyInfos)
+			foreach (var property in entity.GetProperties())
 			{
-				var propertyType = propertyInfo.PropertyType.GetDataType();
-				if (!propertyType.IsClass())
+				if (property.IsOwnsOne)
 				{
-					continue;
-				}
-
-				if (propertyInfo.IsOwnsOne())
-				{
-					propertyInfo.SetValue(entity, CreateEmptyInstance(propertyType));
+					property.PropertyInfo.SetValue(instance, CreateEmptyInstance(property.Type));
 				}
 			}
 
-			return entity;
+			return instance;
 		}
 
-		private void PreProcessProperties(IList<ReaderAccessItem> readerAccessItems, object instance, IEnumerable<(string Alias, string TableName)> requestedTableNames, string columnPrefix = "")
+		private void PreProcessProperties(PreProcessPropertyInformation information)
 		{
-			var propertyInfos = GetProperties(instance.GetType());
-
-			foreach (var propertyInfo in propertyInfos)
+			information.Entity = information.Entity ?? EntityCache.GetEntity(information.Instance.GetType()) ?? TypeAnalyzer.AnalyzeType(information.Instance.GetType());
+			
+			foreach (var property in information.Entity.GetProperties())
 			{
-				var propertyType = propertyInfo.PropertyType.GetDataType();
-				if (propertyType.IsClass() && propertyInfo.IsOwnsOne())
+				if (property.IsOwnsOne)
 				{
-					var ownsOneInstance = Activator.CreateInstance(propertyType);
-					propertyInfo.SetValue(instance, ownsOneInstance);
-					PreProcessProperties(readerAccessItems, ownsOneInstance, requestedTableNames, propertyInfo.GetColumnName().ToLower() + "_");
+					var ownsOneInstance = Activator.CreateInstance(property.Type);
+					property.PropertyInfo.SetValue(information.Instance, ownsOneInstance);
+					PreProcessProperties(new PreProcessPropertyInformation
+					{
+						ReaderAccessItems = information.ReaderAccessItems,
+						Instance = ownsOneInstance,
+						RequestedTableNames = information.RequestedTableNames,
+						ColumnPrefix = property.ColumnName.ToLower() + "_",
+						Entity = property.OwnsOne
+					});
 				}
 
-				var columnName = columnPrefix + propertyInfo.GetColumnName().ToLower();
+				var columnName = information.ColumnPrefix + property.ColumnName.ToLower();
 
-				if (!_tableAnalysisResult.ResultTableNames.Any() || !requestedTableNames.Any())
+				if (!_tableAnalysisResult.ResultTableNames.Any() || !information.RequestedTableNames.Any())
 				{
 					// No result analyse result available
 					if (!_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
@@ -103,11 +108,11 @@ namespace Eshava.Storm
 
 					if (_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
 					{
-						readerAccessItems.Add(new ReaderAccessItem
+						information.ReaderAccessItems.Add(new ReaderAccessItem
 						{
 							Ordinal = _tableAnalysisResult.ColumnCache[columnName].Last(),
-							Instance = instance,
-							PropertyInfo = propertyInfo
+							Instance = information.Instance,
+							PropertyInfo = property.PropertyInfo
 						});
 					}
 
@@ -115,7 +120,7 @@ namespace Eshava.Storm
 				}
 
 				var columnFound = false;
-				foreach (var requestedTableName in requestedTableNames)
+				foreach (var requestedTableName in information.RequestedTableNames)
 				{
 					var fullColumnName = $"{requestedTableName.TableName}.{columnName}";
 
@@ -130,11 +135,11 @@ namespace Eshava.Storm
 						if (requestedTableName.Alias == requestedTableName.TableName)
 						{
 							// Alias is an table name
-							readerAccessItems.Add(new ReaderAccessItem
+							information.ReaderAccessItems.Add(new ReaderAccessItem
 							{
 								Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
-								Instance = instance,
-								PropertyInfo = propertyInfo
+								Instance = information.Instance,
+								PropertyInfo = property.PropertyInfo
 							});
 						}
 
@@ -151,11 +156,11 @@ namespace Eshava.Storm
 						continue;
 					}
 
-					readerAccessItems.Add(new ReaderAccessItem
+					information.ReaderAccessItems.Add(new ReaderAccessItem
 					{
 						Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence],
-						Instance = instance,
-						PropertyInfo = propertyInfo
+						Instance = information.Instance,
+						PropertyInfo = property.PropertyInfo
 					});
 				}
 
@@ -165,61 +170,15 @@ namespace Eshava.Storm
 
 					if (_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
 					{
-						readerAccessItems.Add(new ReaderAccessItem
+						information.ReaderAccessItems.Add(new ReaderAccessItem
 						{
 							Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
-							Instance = instance,
-							PropertyInfo = propertyInfo
+							Instance = information.Instance,
+							PropertyInfo = property.PropertyInfo
 						});
 					}
 				}
 			}
-		}
-
-		private IEnumerable<PropertyInfo> GetProperties(Type dataType)
-		{
-			var cacheResult = ReaderInformationCache.GetReaderProperties(dataType);
-			if (cacheResult?.Any() ?? false)
-			{
-				return cacheResult;
-			}
-
-			var result = new List<PropertyInfo>();
-			var propertyInfos = dataType.GetProperties();
-
-			foreach (var propertyInfo in propertyInfos)
-			{
-				if (!propertyInfo.CanWrite)
-				{
-					continue;
-				}
-
-				var propertyType = propertyInfo.PropertyType.GetDataType();
-
-				if (propertyType.IsNoClass())
-				{
-					result.Add(propertyInfo);
-				}
-
-				if (propertyType.IsClass())
-				{
-					var ownsOne = propertyInfo.GetCustomAttribute<OwnsOneAttribute>();
-					if (ownsOne != default)
-					{
-						result.Add(propertyInfo);
-					}
-
-					propertyInfo.PropertyType.LookupDbType("", false, out var _);
-					if (TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType))
-					{
-						result.Add(propertyInfo);
-					}
-				}
-			}
-
-			ReaderInformationCache.AddType(dataType, result);
-
-			return result;
 		}
 
 		private IEnumerable<(string Alias, string TableName)> GetTableNamesFromAlias(string tableAlias)
@@ -249,11 +208,18 @@ namespace Eshava.Storm
 
 		private void SetTableAnalysisResult(string sql)
 		{
+			if (sql.IsNullOrEmpty())
+			{
+				return;
+			}
+
 			var sqlHashCode = sql.GetHashCode();
 			var tableAnalysisResult = ReaderInformationCache.GetReaderTableAnalysisResult(sqlHashCode);
 			if (tableAnalysisResult != default)
 			{
 				_tableAnalysisResult = tableAnalysisResult;
+
+				return;
 			}
 
 			var tableAliases = sql.GetTableAliases();

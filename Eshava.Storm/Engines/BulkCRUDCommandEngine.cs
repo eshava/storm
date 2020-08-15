@@ -15,10 +15,9 @@ namespace Eshava.Storm.Engines
 		public async Task BulkInsertAsync<T>(BulkCommandDefinition<T> commandDefinition) where T : class
 		{
 			var type = CheckCommandConditions(commandDefinition.Entities, "insert");
-			var tableName = GetTableName(type);
-			var keyColumns = GetKeyColumns(type);
+			var entityTypeResult = MetaData.Models.EntityCache.GetEntity(type) ?? MetaData.TypeAnalyzer.AnalyzeType(type);
 
-			if (!keyColumns.Any())
+			if (!entityTypeResult.HasPrimaryKey())
 			{
 				throw new ArgumentException("At least one key column property must be defined.");
 			}
@@ -26,11 +25,11 @@ namespace Eshava.Storm.Engines
 			var sqlBulkCopy = commandDefinition.Transaction == default
 				? new SqlBulkCopy(commandDefinition.Connection)
 				{
-					DestinationTableName = tableName
+					DestinationTableName = entityTypeResult.TableName
 				}
 				: new SqlBulkCopy(commandDefinition.Connection, SqlBulkCopyOptions.Default, commandDefinition.Transaction)
 				{
-					DestinationTableName = tableName
+					DestinationTableName = entityTypeResult.TableName
 				};
 
 			if (commandDefinition.CommandTimeout.HasValue)
@@ -38,26 +37,31 @@ namespace Eshava.Storm.Engines
 				sqlBulkCopy.BulkCopyTimeout = commandDefinition.CommandTimeout.Value;
 			}
 
-			var properties = GetProperties(type, commandDefinition.Entities.First());
-			var dataTable = CreateDataTable(properties, keyColumns, sqlBulkCopy);
+
+			var properties = GetProperties(new PropertyRequest
+			{
+				Type = type,
+				Entity = commandDefinition.Entities.First()
+			});
+
+			var dataTable = CreateDataTable(properties, sqlBulkCopy);
 
 			foreach (var entity in commandDefinition.Entities)
 			{
-				properties = GetProperties(type, entity);
+				// Must be executed for all entities, because OwnsOne Properties can be filled or not filled
+				properties = GetProperties(new PropertyRequest
+				{
+					Type = type,
+					Entity = entity
+				});
 
 				var row = dataTable.NewRow();
 
 				foreach (var property in properties)
 				{
-					if (SkipPropertyForInsert(property, keyColumns))
-					{
-						continue;
-					}
-
-					var columnName = GetColumnName(property.PropertyInfo);
 					if (property.TypeHandler == default)
 					{
-						row[columnName.Column] = property.PropertyInfo.GetValue(property.Entity) ?? DBNull.Value;
+						row[property.ColumnName] = property.PropertyInfo.GetValue(property.Entity) ?? DBNull.Value;
 
 						continue;
 					}
@@ -65,13 +69,13 @@ namespace Eshava.Storm.Engines
 					var cellValue = property.PropertyInfo.GetValue(property.Entity);
 					if (cellValue == null)
 					{
-						row[columnName.Column] = DBNull.Value;
+						row[property.ColumnName] = DBNull.Value;
 					}
 					else
 					{
 						var sqlParameter = new SqlParameter();
 						property.TypeHandler.SetValue(sqlParameter, cellValue);
-						row[columnName.Column] = sqlParameter.Value;
+						row[property.ColumnName] = sqlParameter.Value;
 					}
 				}
 
@@ -81,27 +85,21 @@ namespace Eshava.Storm.Engines
 			await sqlBulkCopy.WriteToServerAsync(dataTable, commandDefinition.CancellationToken);
 		}
 
-		private DataTable CreateDataTable(IEnumerable<Property> properties, IEnumerable<KeyProperty> keyColumns, SqlBulkCopy sqlBulkCopy)
+		private DataTable CreateDataTable(IEnumerable<Property> properties, SqlBulkCopy sqlBulkCopy)
 		{
 			var dataTable = new DataTable();
 			foreach (var property in properties)
 			{
-				if (SkipPropertyForInsert(property, keyColumns))
-				{
-					continue;
-				}
-
-				var columnName = GetColumnName(property.PropertyInfo);
-				sqlBulkCopy.ColumnMappings.Add(columnName.Column, columnName.Column);
+				sqlBulkCopy.ColumnMappings.Add(property.ColumnName, property.ColumnName);
 
 				if (property.TypeHandler == default || !property.TypeHandler.ReadAsByteArray)
 				{
-					dataTable.Columns.Add(new DataColumn(columnName.Column, property.PropertyInfo.PropertyType.GetDataType()));
+					dataTable.Columns.Add(new DataColumn(property.ColumnName, property.PropertyInfo.PropertyType.GetDataType()));
 
 					continue;
 				}
 
-				dataTable.Columns.Add(new DataColumn(columnName.Column, typeof(SqlBytes)));
+				dataTable.Columns.Add(new DataColumn(property.ColumnName, typeof(SqlBytes)));
 			}
 
 			return dataTable;
