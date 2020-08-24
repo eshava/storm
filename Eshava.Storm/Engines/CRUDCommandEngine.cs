@@ -216,7 +216,14 @@ namespace Eshava.Storm.Engines
 				condition.Query.Append(condition.TableName);
 				condition.Query.Append(".");
 				condition.Query.Append(property.ColumnName);
-				condition.Query.Append(" = @");
+				if (property.PropertyInfo.PropertyType.ImplementsIEnumerable())
+				{
+					condition.Query.Append(" = @");
+				}
+				else
+				{
+					condition.Query.Append(" IN @");
+				}
 				condition.Query.AppendLine(property.PropertyInfo.Name);
 
 				condition.Parameters.Add(new KeyValuePair<string, object>(property.PropertyInfo.Name, property.PropertyInfo.GetValue(entity)));
