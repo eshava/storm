@@ -218,11 +218,11 @@ namespace Eshava.Storm.Engines
 				condition.Query.Append(property.ColumnName);
 				if (property.PropertyInfo.PropertyType.ImplementsIEnumerable())
 				{
-					condition.Query.Append(" = @");
+					condition.Query.Append(" IN @");
 				}
 				else
 				{
-					condition.Query.Append(" IN @");
+					condition.Query.Append(" = @");
 				}
 				condition.Query.AppendLine(property.PropertyInfo.Name);
 
