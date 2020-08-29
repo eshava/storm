@@ -46,6 +46,11 @@ namespace Eshava.Storm.Extensions
 				return dbType;
 			}
 
+			if (type.GetDataType() == _typeOfDateTime)
+			{
+				return Settings.EnableDateTimeHighAccuracy ? DbType.DateTime2 : DbType.DateTime;
+			}
+
 			if (type.FullName == DefaultNames.LINQBINARY)
 			{
 				return DbType.Binary;

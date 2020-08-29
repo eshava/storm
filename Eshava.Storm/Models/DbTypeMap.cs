@@ -23,7 +23,6 @@ namespace Eshava.Storm.Models
 			[typeof(string)] = DbType.String,
 			[typeof(char)] = DbType.StringFixedLength,
 			[typeof(Guid)] = DbType.Guid,
-			[typeof(DateTime)] = DbType.DateTime2,
 			[typeof(DateTimeOffset)] = DbType.DateTimeOffset,
 			[typeof(TimeSpan)] = DbType.Time,
 			[typeof(byte[])] = DbType.Binary,
@@ -41,7 +40,6 @@ namespace Eshava.Storm.Models
 			[typeof(bool?)] = DbType.Boolean,
 			[typeof(char?)] = DbType.StringFixedLength,
 			[typeof(Guid?)] = DbType.Guid,
-			[typeof(DateTime?)] = DbType.DateTime2,
 			[typeof(DateTimeOffset?)] = DbType.DateTimeOffset,
 			[typeof(TimeSpan?)] = DbType.Time,
 			[typeof(object)] = DbType.Object
