@@ -70,5 +70,19 @@ namespace Eshava.Storm
 
 			return result == 1;
 		}
+
+		public static Task<T> QueryEntityAsync<T>(this IDbConnection connection, object id, IDbTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+		{
+			var commandDefinition = new CommandDefinition<T>(
+				connection,
+				null,
+				transaction,
+				commandTimeout,
+				cancellationToken);
+
+			new CRUDCommandEngine(null).ProcessQueryEntityRequest(commandDefinition, id);
+
+			return new SqlEngine().QueryFirstOrDefaultAsync<T>(commandDefinition, null);
+		}
 	}
 }

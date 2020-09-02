@@ -93,7 +93,7 @@ namespace Eshava.Storm.Engines
 		public void ProcessUpdateRequest<T>(CommandDefinition<T> commandDefinition, object partialEntity = null) where T : class
 		{
 			var type = CheckCommandConditions(commandDefinition, "update", partialEntity);
-		
+
 			var entityTypeResult = EntityCache.GetEntity(type) ?? TypeAnalyzer.AnalyzeType(type);
 			var keyColumns = GetKeyColumns(type, partialEntity?.GetType());
 
@@ -144,7 +144,7 @@ namespace Eshava.Storm.Engines
 				{
 					sql.Append(property.Prefix);
 				}
-								
+
 				sql.Append(property.ColumnName);
 				sql.Append(" = @");
 
@@ -195,6 +195,48 @@ namespace Eshava.Storm.Engines
 			commandDefinition.Entity);
 
 			commandDefinition.UpdateCommand(sql.ToString(), parameters);
+		}
+
+		public void ProcessQueryEntityRequest<T>(CommandDefinition<T> commandDefinition, object id) where T : class
+		{
+			var keyColumns = GetKeyColumns(typeof(T));
+			if (keyColumns.Count() == 0)
+			{
+				throw new NotSupportedException("No key columns available");
+			}
+
+			if (id == null 
+			|| id.GetType().ImplementsIEnumerable()
+			|| (keyColumns.Count() == 1 && !id.GetType().IsNoClass())
+			|| (keyColumns.Count() > 1 && !id.GetType().IsClass()))
+			{
+				throw new ArgumentException("Invalid id value");
+			}
+
+			var query = $"SELECT * FROM {TypeAnalyzer.GetTableName<T>()}";
+			var parameters = new List<KeyValuePair<string, object>>();
+
+			if (keyColumns.Count() == 1)
+			{
+				var keyColumn = keyColumns.First();
+				query += $" WHERE {keyColumn.ColumnName} = @{keyColumn.PropertyInfo.Name}";
+				parameters.Add(new KeyValuePair<string, object>(keyColumn.PropertyInfo.Name, id));
+			}
+			else
+			{
+				var firstColumn = true;
+				foreach (var keyColumn in keyColumns)
+				{
+					var propertyValue = id.GetType().GetProperty(keyColumn.PropertyInfo.Name).GetValue(id);
+					parameters.Add(new KeyValuePair<string, object>(keyColumn.PropertyInfo.Name, propertyValue));
+
+					var prefix = firstColumn ? "WHERE" : "AND";
+					query += $" {prefix} {keyColumn.ColumnName} = @{keyColumn.PropertyInfo.Name}";
+					firstColumn = false;
+				}
+			}
+
+			commandDefinition.UpdateCommand(query, parameters);
 		}
 
 		private void AppendWhereCondition(WhereCondition condition, object entity)

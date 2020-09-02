@@ -238,6 +238,17 @@ public class DateTimeHandler : TypeHandler<DateTime>
 Eshava.Storm provides also helpers to simple create, update and delete data objects
 
 
+Query data
+------------
+
+The query method allows you to read a data object by id.
+If the data object has an combined key, you can pass an anonymous type object as id parameter.
+
+```csharp
+public static Task<T> QueryEntityAsync<T>(this IDbConnection connection, object id, IDbTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+```
+
+
 Insert data
 ------------
 
