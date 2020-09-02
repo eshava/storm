@@ -95,7 +95,7 @@ namespace Eshava.Storm.MetaData
 						}
 					}
 				}
-				else if (propertyType.IsClass())
+				else if (propertyType.IsClass() || Storm.Models.TypeHandlerMap.Map.ContainsKey(propertyType))
 				{
 					property = entity.GetProperty(propertyInfo.Name);
 					if (property == default || !property.IsOwnsOne)
