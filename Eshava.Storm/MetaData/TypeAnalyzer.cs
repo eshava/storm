@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using System.Reflection;
 using Eshava.Storm.Extensions;
 using Eshava.Storm.MetaData.Builders;
@@ -112,6 +113,10 @@ namespace Eshava.Storm.MetaData
 							property.SetOwnsOneEntity(ownsOneEntity);
 							AnalyzeType(ownsOneEntity);
 						}
+					}
+					else if (property.IsOwnsOne && !property.OwnsOne.GetProperties().Any())
+					{
+						AnalyzeType(property.OwnsOne);
 					}
 
 					if (property == default || !property.IsOwnsOne)
