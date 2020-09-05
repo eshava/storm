@@ -22,6 +22,11 @@ namespace Eshava.Storm.Engines
 				throw new ArgumentException("At least one key column property must be defined.");
 			}
 
+			if (commandDefinition.Connection.State == ConnectionState.Closed)
+			{
+				await commandDefinition.Connection.OpenAsync(commandDefinition.CancellationToken).ConfigureAwait(false);
+			}
+
 			var sqlBulkCopy = commandDefinition.Transaction == default
 				? new SqlBulkCopy(commandDefinition.Connection)
 				{
@@ -36,7 +41,6 @@ namespace Eshava.Storm.Engines
 			{
 				sqlBulkCopy.BulkCopyTimeout = commandDefinition.CommandTimeout.Value;
 			}
-
 
 			var properties = GetProperties(new PropertyRequest
 			{
