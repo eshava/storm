@@ -14,6 +14,7 @@ namespace Eshava.Storm.Extensions
 		private static readonly Type _typeOfDecimal = typeof(decimal);
 		private static readonly Type _typeOfGuid = typeof(Guid);
 		private static readonly Type _typeOfDateTime = typeof(DateTime);
+		private static readonly Type _typeOfTimeSpan = typeof(TimeSpan);
 		private static readonly Type _typeOfByteArray = typeof(byte[]);
 
 		internal static DbType LookupDbType(this Type type, string name, bool demand, out ITypeHandler handler)
@@ -157,6 +158,7 @@ namespace Eshava.Storm.Extensions
 				|| propertyType == _typeOfDecimal
 				|| propertyType == _typeOfGuid
 				|| propertyType == _typeOfDateTime
+				|| propertyType == _typeOfTimeSpan
 				|| propertyType == _typeOfByteArray)
 			{
 				return true;
