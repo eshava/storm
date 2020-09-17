@@ -103,7 +103,10 @@ namespace Eshava.Storm.Extensions
 					continue;
 				}
 
-				tableAliases.Add(alias, tableName);
+				if (!tableAliases.ContainsKey(alias))
+				{
+					tableAliases.Add(alias, tableName);
+				}
 			}
 		}
 
