@@ -29,6 +29,11 @@ namespace Eshava.Storm.MetaData
 				entity = AnalyzeType(type);
 			}
 
+			if (entity.TableName.IsNullOrEmpty())
+			{
+				throw new InvalidOperationException($"Table name is no set. Considers using {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.AddType)} before using {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.GetTableName)}");
+			}
+
 			return entity.TableName;
 		}
 
