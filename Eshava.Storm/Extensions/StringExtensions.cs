@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Eshava.Storm.Constants;
 using Eshava.Storm.Models;
@@ -69,7 +70,7 @@ namespace Eshava.Storm.Extensions
 			}
 
 			var hasMatchesAliases = RegExStrings.TablesAliases.IsMatch(sql);
-			var hasMatchesAliasesWithAS = RegExStrings.TablesAliasesWithAS.IsMatch(sql);
+			var hasMatchesAliasesWithAS = RegExStrings.TablesAliasesWithAs.IsMatch(sql);
 
 			if (!hasMatchesAliases && !hasMatchesAliasesWithAS)
 			{
@@ -84,7 +85,7 @@ namespace Eshava.Storm.Extensions
 
 			if (hasMatchesAliasesWithAS)
 			{
-				var matches = RegExStrings.TablesAliasesWithAS.Matches(sql);
+				var matches = RegExStrings.TablesAliasesWithAs.Matches(sql);
 				ExecuteRegEx(matches, 4, tableAliases);
 			}
 
@@ -117,6 +118,8 @@ namespace Eshava.Storm.Extensions
 				.Replace("[", "")
 				.Replace("]", "")
 				.Trim()
+				.Split('.')
+				.Last()
 				;
 		}
 	}

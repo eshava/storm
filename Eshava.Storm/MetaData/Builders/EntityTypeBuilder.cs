@@ -27,7 +27,7 @@ namespace Eshava.Storm.MetaData.Builders
 		{
 			if (schema.IsNullOrEmpty())
 			{
-				_entity.SetTableName(tableName);
+				_entity.SetTableName($"[{tableName}]");
 			}
 			else
 			{
