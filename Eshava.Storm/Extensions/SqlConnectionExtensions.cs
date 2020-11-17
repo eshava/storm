@@ -22,5 +22,22 @@ namespace Eshava.Storm
 
 			return engine.BulkInsertAsync(command);
 		}
+
+		public static Task BulkInsertAsync<T>(this SqlConnection connection, IEnumerable<T> entitiesToInsert, string CustomTableName, SqlTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+		{
+			var engine = new BulkCRUDCommandEngine();
+			var command = new BulkCommandDefinition<T>(
+				connection,
+				entitiesToInsert,
+				transaction,
+				commandTimeout,
+				cancellationToken
+			)
+			{
+				TableName = CustomTableName
+			};
+
+			return engine.BulkInsertAsync(command);
+		}
 	}
 }

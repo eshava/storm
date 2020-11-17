@@ -27,14 +27,20 @@ namespace Eshava.Storm.Engines
 				await commandDefinition.Connection.OpenAsync(commandDefinition.CancellationToken).ConfigureAwait(false);
 			}
 
+			var tableName = entityTypeResult.TableName;
+			if (!commandDefinition.TableName.IsNullOrEmpty())
+			{
+				tableName = commandDefinition.TableName;
+			}
+
 			var sqlBulkCopy = commandDefinition.Transaction == default
 				? new SqlBulkCopy(commandDefinition.Connection)
 				{
-					DestinationTableName = entityTypeResult.TableName
+					DestinationTableName = tableName
 				}
 				: new SqlBulkCopy(commandDefinition.Connection, SqlBulkCopyOptions.Default, commandDefinition.Transaction)
 				{
-					DestinationTableName = entityTypeResult.TableName
+					DestinationTableName = tableName
 				};
 
 			if (commandDefinition.CommandTimeout.HasValue)

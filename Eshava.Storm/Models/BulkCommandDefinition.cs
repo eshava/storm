@@ -41,5 +41,7 @@ namespace Eshava.Storm.Models
 		public CancellationToken CancellationToken { get; }
 		
 		public IEnumerable<T> Entities { get; set; }
+
+		public string TableName { get; set; }
 	}
 }

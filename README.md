@@ -311,6 +311,9 @@ Bulk Insert data
 public static Task BulkInsertAsync<T>(this SqlConnection connection, IEnumerable<T> entitiesToInsert, SqlTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
 ```
 
+```csharp
+public static Task BulkInsertAsync<T>(this SqlConnection connection, IEnumerable<T> entitiesToInsert, string CustomTableName, SqlTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+```
 
 ## Configuration via attributes
 
