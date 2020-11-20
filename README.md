@@ -355,3 +355,82 @@ Register:
 ```csharp
 Eshava.Storm.MetaData.TypeAnalyzer.AddType(new AlphaTypeConfiguration());
 ```
+
+# Storm.Linq
+Eshava.Storm.Linq - a extension to Eshava.Storm
+
+## Features
+Eshava.Storm.Linq is a [NuGet library](https://nuget.org/packages/Eshava.Storm.Linq) that you can add in to your project that will extend your `IEnumerable` interface.
+
+It provides 5 helpers:
+
+Converts a list of linq filter expressions to plain sql
+------------------------------------------------------------
+The linq filter expressions can be created manually or with the `WhereQueryEngine` from Eshava.Core.Linq is a [NuGet library](https://nuget.org/packages/Eshava.Core.Linq)
+
+```csharp
+public static WhereQueryResult AddWhereConditionsToQuery<T>(this IEnumerable<Expression<Func<T, bool>>> queryConditions, string sqlQuery, WhereQuerySettings settings = null) where T : class
+```
+```csharp
+public static WhereQueryResult CalculateWhereConditions<T>(this IEnumerable<Expression<Func<T, bool>>> queryConditions, WhereQuerySettings settings) where T : class
+```
+The extension methods produces an `WhereQueryResult` that contains the raw sql query and a dictionary of parameter
+```csharp
+public class WhereQueryResult
+{
+	public string Sql { get; set; }
+	public Dictionary<string, object> QueryParameter { get; set; }
+}
+```
+
+Converts a list of order by conditions to plain sql
+------------------------------------------------------------
+The order by conditions can be created with the `SortingQueryEngine` from Eshava.Core.Linq is a [NuGet library](https://nuget.org/packages/Eshava.Core.Linq)
+```csharp
+public static string AddSortConditionsToQuery(this IEnumerable<OrderByCondition> orderByConditions, string sqlQuery, QuerySettings settings = null)
+```
+```csharp
+public static string CalculateSortConditions(this IEnumerable<OrderByCondition> orderByConditions, QuerySettings settings = null)
+```
+
+Appends skip and take to a sql query
+------------------------------------------------------------
+```csharp
+public static string AppendSkipAndTake(this string sqlQuery, int skip, int take)
+```
+
+Recommended settings
+------------------------------------------------------------
+For the four extension method it is recommended to pass property name mappings.
+```csharp
+public class WhereQuerySettings : QuerySettings
+{
+	public Dictionary<string, object> QueryParameter { get; set; }
+}
+```
+
+Example usage:
+```csharp
+public class Alpha
+{
+    public string Beta { get; set; }
+    public Omega Omega { get; set;}
+}
+
+public class Omega
+{
+    public string Psi { get; set; }    
+}
+```
+The Alpha and Omega classes each represent a table and are joined in the example and have the aliases "a" and "o  
+A possible member expression could be `p => p.Omega.Psi` und should be translated to `o.Psi`.
+Therefore a mapping must be created. During processing the expression `p => p.Omega.Psi` becomes the string `.Omega.Psi`.
+So that the mapping looks like:
+```csharp
+settings.QueryParameter.Add(".Omega.Psi","o.Psi");
+```
+
+Comming soon
+------------------------------------------------------------
+In a later stage there will be a intelligent processing of the member expressions.
+For processing, the DbConfigurations shall be extended by navigation relations, so that Joins and OwnsOnes can be recognized and translated automatically. 

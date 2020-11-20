@@ -3,13 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eshava.Storm", "Eshava.Storm\Eshava.Storm.csproj", "{21ADB094-508B-4CD5-BAB6-387FF02D80D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eshava.Storm", "Eshava.Storm\Eshava.Storm.csproj", "{21ADB094-508B-4CD5-BAB6-387FF02D80D8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{00FE1DA9-2EB9-4F1B-A740-4276D8F9ADE8}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		LICENSE.txt = LICENSE.txt
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eshava.Storm.Linq", "Eshava.Storm.Linq\Eshava.Storm.Linq.csproj", "{5C15BB24-B439-4227-BF9A-DB04E8EC031D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eshava.Storm.Linq.Tests", "Eshava.Storm.Linq.Tests\Eshava.Storm.Linq.Tests.csproj", "{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{21ADB094-508B-4CD5-BAB6-387FF02D80D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21ADB094-508B-4CD5-BAB6-387FF02D80D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21ADB094-508B-4CD5-BAB6-387FF02D80D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C15BB24-B439-4227-BF9A-DB04E8EC031D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C15BB24-B439-4227-BF9A-DB04E8EC031D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C15BB24-B439-4227-BF9A-DB04E8EC031D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C15BB24-B439-4227-BF9A-DB04E8EC031D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
