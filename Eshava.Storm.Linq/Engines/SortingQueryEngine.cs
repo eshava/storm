@@ -49,10 +49,10 @@ namespace Eshava.Storm.Linq.Engines
 			{
 				if (sql.Length > 0)
 				{
-					sql.Append(" ,");
+					sql.Append(", ");
 				}
 
-				var member = ProcessExpression(orderByCondition.Member, data);
+				var member = MapPropertyPath(data, ProcessExpression(orderByCondition.Member, data));
 				sql.Append(member);
 				sql.Append(" ");
 				sql.Append(orderByCondition.SortOrder == Core.Linq.Enums.SortOrder.Ascending ? "ASC" : "DESC");

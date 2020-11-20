@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
+using System.Reflection;
 using Eshava.Storm.Linq.Extensions;
 using Eshava.Storm.Linq.Models;
 
@@ -10,7 +10,9 @@ namespace Eshava.Storm.Linq.Engines
 {
 	internal abstract class AbstractQueryEngine
 	{
+		private const string PARAMETER_PLACEHOLDER = "###";
 		private const string METHOD_CONTAINS = "contains";
+		private const string METHOD_ANY = "any";
 		private const string METHOD_STARTSWITH = "startswith";
 		private const string METHOD_ENDSWITH = "endswith";
 		private const string METHOD_COMPARETO = "compareto";
@@ -51,10 +53,15 @@ namespace Eshava.Storm.Linq.Engines
 				return ProcessBinaryExpression(binaryExpression, data);
 			}
 
-			var propertyExpression = expression as MemberExpression;
-			if (propertyExpression != default && expression.NodeType == ExpressionType.MemberAccess)
+			var memberExpression = expression as MemberExpression;
+			if (memberExpression != default && expression.NodeType == ExpressionType.MemberAccess)
 			{
-				return ProcessMemberExpression(propertyExpression, data);
+				if (memberExpression.Expression.NodeType == ExpressionType.Constant)
+				{
+					return ProcessDisplayClassConstantExpression(memberExpression, data);
+				}
+
+				return ProcessMemberExpression(memberExpression, data);
 			}
 
 			var constantExpression = expression as ConstantExpression;
@@ -72,6 +79,26 @@ namespace Eshava.Storm.Linq.Engines
 			return "";
 		}
 
+		protected string MapPropertyPath(QuerySettings data, string propertyName)
+		{
+			if (propertyName.IsNullOrEmpty() || !propertyName.StartsWith("."))
+			{
+				return propertyName;
+			}
+
+			if (!data.PropertyMappings.ContainsKey(propertyName))
+			{
+				if (data.PropertyMappings.ContainsKey("."))
+				{
+					return data.PropertyMappings["."] + propertyName;
+				}
+
+				return propertyName.Substring(1);
+			}
+
+			return data.PropertyMappings[propertyName];
+		}
+
 		private string ProcessBinaryExpression(BinaryExpression binaryExpression, WhereQueryData data)
 		{
 			var left = ProcessExpression(binaryExpression.Left, data);
@@ -85,6 +112,19 @@ namespace Eshava.Storm.Linq.Engines
 			}
 
 			var nodeType = _expressionTypeMappings[binaryExpression.NodeType];
+
+			if (left == "")
+			{
+				// Inner lamba expression 
+
+				return $"({PARAMETER_PLACEHOLDER} {nodeType} {MapPropertyPath(data, right)})";
+			}
+			else if (right == "")
+			{
+				// Inner lamba expression 
+
+				return $"({MapPropertyPath(data, left)} {nodeType} {PARAMETER_PLACEHOLDER})";
+			}
 
 			// Special case handling for NULL and NOT NULL 
 			if (binaryExpression.NodeType == ExpressionType.Equal && right == null)
@@ -109,6 +149,20 @@ namespace Eshava.Storm.Linq.Engines
 			return $"{parent}.{property}";
 		}
 
+		private string ProcessDisplayClassConstantExpression(MemberExpression memberExpression, WhereQueryData data)
+		{
+			var constantExpression = memberExpression.Expression as ConstantExpression;
+			if (constantExpression.Value == default)
+			{
+				return null;
+			}
+
+			var value = GetValueFromDisplayClass(memberExpression.Member, constantExpression);
+			var newConstantExpression = Expression.Constant(value, memberExpression.Type);
+
+			return ProcessExpression(newConstantExpression, data);
+		}
+
 		private string ProcessUnaryExpressionConvert(UnaryExpression unaryExpression, WhereQueryData data)
 		{
 			return ProcessExpression(unaryExpression.Operand, data);
@@ -126,7 +180,7 @@ namespace Eshava.Storm.Linq.Engines
 				return null;
 			}
 
-			var parameterName = "@p" + +data.Index;
+			var parameterName = "@p" + data.Index;
 			if (constantExpression.Value.GetType().GetDataType().IsEnum)
 			{
 				data.QueryParameter.Add("p" + data.Index, Convert.ToInt32(constantExpression.Value));
@@ -144,8 +198,25 @@ namespace Eshava.Storm.Linq.Engines
 		private string ProcessMethodCallExpression(MethodCallExpression methodCallExpression, WhereQueryData data)
 		{
 			var method = methodCallExpression.Method.Name.ToLower();
-			var rawProperty = ProcessExpression(methodCallExpression.Object, data);
-			var value = ProcessExpression(methodCallExpression.Arguments.First(), data);
+			var rawProperty = "";
+			var value = "";
+
+			if (method == METHOD_ANY)
+			{
+				return ProcessMethodCallExpressionAny(methodCallExpression, data);
+			}
+
+			if (method == METHOD_CONTAINS && methodCallExpression.Arguments.Count == 2)
+			{
+				//DisplayClass
+				rawProperty = ProcessExpression(methodCallExpression.Arguments.First(), data);
+				value = ProcessExpression(methodCallExpression.Arguments.Last(), data);
+			}
+			else
+			{
+				rawProperty = ProcessExpression(methodCallExpression.Object, data);
+				value = ProcessExpression(methodCallExpression.Arguments.First(), data);
+			}
 
 			var property = "";
 			if (method == METHOD_CONTAINS && rawProperty.StartsWith("@"))
@@ -189,31 +260,51 @@ namespace Eshava.Storm.Linq.Engines
 			return "";
 		}
 
+		private string ProcessMethodCallExpressionAny(MethodCallExpression methodCallExpression, WhereQueryData data)
+		{
+			// Display Class
+			var memberExpression = methodCallExpression.Arguments.First() as MemberExpression;
+			var constantExpression = memberExpression.Expression as ConstantExpression;
+			var enumerable = GetValueFromDisplayClass(memberExpression.Member, constantExpression) as System.Collections.IEnumerable;
+
+			// Inner function expression
+			var lambdaExpression = methodCallExpression.Arguments.Last() as LambdaExpression;
+			var lambdaAsQuery = ProcessExpression(lambdaExpression.Body, data);
+
+			var queryParts = new List<string>();
+			foreach (var item in enumerable)
+			{
+				var parameterName = "p" + data.Index;
+				data.QueryParameter.Add(parameterName, item);
+				data.Index++;
+
+				queryParts.Add(lambdaAsQuery.Replace(PARAMETER_PLACEHOLDER, "@" + parameterName));
+			}
+
+			return $"({String.Join(" OR ", queryParts) })";
+		}
+
 		private void ManipulateParameterValue(WhereQueryData data, string parameterName, Func<object, string> manipulate)
 		{
 			parameterName = parameterName.Replace("@", "");
 
 			data.QueryParameter[parameterName] = manipulate(data.QueryParameter[parameterName]);
 		}
-
-		private string MapPropertyPath(WhereQueryData data, string propertyName)
+			
+		private object GetValueFromDisplayClass(MemberInfo memberInfo, ConstantExpression constantExpression)
 		{
-			if (propertyName.IsNullOrEmpty() || !propertyName.StartsWith("."))
+			var value = default(object);
+			if (memberInfo.MemberType == MemberTypes.Field)
 			{
-				return propertyName;
+				value = ((FieldInfo)memberInfo).GetValue(constantExpression.Value);
+			}
+			else if (memberInfo.MemberType == MemberTypes.Property)
+			{
+				value = ((PropertyInfo)memberInfo).GetValue(constantExpression.Value);
 			}
 
-			if (!data.PropertyMappings.ContainsKey(propertyName))
-			{
-				if (data.PropertyMappings.ContainsKey("."))
-				{
-					return data.PropertyMappings["."] + propertyName;
-				}
-
-				return propertyName.Substring(1);
-			}
-
-			return data.PropertyMappings[propertyName];
+			return value;
 		}
+
 	}
 }

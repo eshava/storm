@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+		<LangVersion>latest</LangVersion>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+		<Authors>Eshava</Authors>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="FakeItEasy" Version="6.2.1" />
+		<PackageReference Include="FluentAssertions" Version="5.10.3" />
+		<PackageReference Include="MSTest.TestFramework" Version="2.1.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Eshava.Storm.Linq\Eshava.Storm.Linq.csproj" />
+	</ItemGroup>
+</Project>

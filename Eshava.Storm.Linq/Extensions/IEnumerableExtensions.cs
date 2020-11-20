@@ -16,7 +16,7 @@ namespace Eshava.Storm.Linq.Extensions
 			return whereQueryEngine.AddWhereConditionsToQuery(queryConditions, sqlQuery, settings);
 		}
 
-		public static WhereQueryResult CalculateWhereConditions<T>(this IEnumerable<Expression<Func<T, bool>>> queryConditions, WhereQuerySettings settings) where T : class
+		public static WhereQueryResult CalculateWhereConditions<T>(this IEnumerable<Expression<Func<T, bool>>> queryConditions, WhereQuerySettings settings = null) where T : class
 		{
 			var whereQueryEngine = new WhereQueryEngine();
 

@@ -13,7 +13,7 @@ namespace Eshava.Storm.Linq.Extensions
 				return sqlQuery;
 			}
 
-			return $"{sqlQuery}{Environment.NewLine}OFFSET {skip} ROWS FETCH NEXT {take} ROWS ONLY";
+			return $"{sqlQuery}{Environment.NewLine}OFFSET {Math.Max(skip, 0)} ROWS FETCH NEXT {take} ROWS ONLY";
 		}
 
 		internal static bool IsNullOrEmpty(this string text)
