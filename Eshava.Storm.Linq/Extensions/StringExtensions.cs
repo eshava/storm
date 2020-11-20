@@ -6,6 +6,16 @@ namespace Eshava.Storm.Linq.Extensions
 {
 	public static class StringExtensions
 	{
+		public static string AppendSkipAndTake(this string sqlQuery, int skip, int take)
+		{
+			if (take <= 0)
+			{
+				return sqlQuery;
+			}
+
+			return $"{sqlQuery}{Environment.NewLine}OFFSET {skip} ROWS FETCH NEXT {take} ROWS ONLY";
+		}
+
 		internal static bool IsNullOrEmpty(this string text)
 		{
 			return String.IsNullOrEmpty(text);

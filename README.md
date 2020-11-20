@@ -362,7 +362,7 @@ Eshava.Storm.Linq - a extension to Eshava.Storm
 ## Features
 Eshava.Storm.Linq is a [NuGet library](https://nuget.org/packages/Eshava.Storm.Linq) that you can add in to your project that will extend your `IEnumerable` interface.
 
-It provides 4 helpers:
+It provides 5 helpers:
 
 Converts a list of linq filter expressions to plain sql
 ------------------------------------------------------------
@@ -391,6 +391,12 @@ public static string AddSortConditionsToQuery(this IEnumerable<OrderByCondition>
 ```
 ```csharp
 public static string CalculateSortConditions(this IEnumerable<OrderByCondition> orderByConditions, QuerySettings settings = null)
+```
+
+Appends skip and take to a sql query
+------------------------------------------------------------
+```csharp
+public static string AppendSkipAndTake(this string sqlQuery, int skip, int take)
 ```
 
 Recommended settings
