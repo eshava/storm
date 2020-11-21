@@ -411,6 +411,37 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		}
 
 		[TestMethod]
+		public void CalculateWhereConditionsAnyAndWithPropertyTypeMappingTest()
+		{
+			// Arrange
+			var values = new List<int> { 10, 20 };
+			var data = new WhereQuerySettings
+			{
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Alpha), "a" }
+				}
+			};
+
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => values.Any(v => alpha.Beta > v && v > alpha.Epsilon)
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions(data);
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(2);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Keys.Last().Should().Be("p1");
+			result.QueryParameter.Values.First().Should().Be(10);
+			result.QueryParameter.Values.Last().Should().Be(20);
+
+			result.Sql.Should().Be("(((a.Beta > @p0) AND (@p0 > a.Epsilon)) OR ((a.Beta > @p1) AND (@p1 > a.Epsilon)))" + Environment.NewLine);
+		}
+
+		[TestMethod]
 		public void CalculateWhereConditionsMultipleConditionsTest()
 		{
 			// Arrange
@@ -572,6 +603,62 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 				PropertyMappings = new Dictionary<string, string>
 				{
 					{ ".Omega.Psi", "o.Psi" }
+				}
+			};
+
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Omega.Psi == "One"
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions(data);
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("One");
+
+			result.Sql.Should().Be("(o.Psi = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsPropertyTypeMappingTest()
+		{
+			// Arrange
+			var data = new WhereQuerySettings
+			{
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Alpha), "a" }
+				}
+			};
+
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Gamma == "One"
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions(data);
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("One");
+
+			result.Sql.Should().Be("(a.Gamma = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsPropertyTypeMappingSubClassTest()
+		{
+			// Arrange
+			var data = new WhereQuerySettings
+			{
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Omega), "o" }
 				}
 			};
 
@@ -793,6 +880,52 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 				{
 					{ ".", "a" },
 					{ ".Omega.Psi", "o.Psi" }
+				}
+			};
+
+			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
+
+			// Act
+			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+
+			// Assert
+			result.Should().Be($"{query}{Environment.NewLine}ORDER BY{Environment.NewLine}a.Beta DESC, o.Psi ASC");
+		}
+
+		[TestMethod]
+		public void AddSortConditionsToQueryNoOrderWithPropertyTypeMappingByTest()
+		{
+			// Arrange
+			var query = "SELECT * FROM Alpha a";
+			var sortingEngine = new SortingQueryEngine();
+			var mappings = new Dictionary<string, List<Expression<Func<Alpha, object>>>>
+			{
+				{ nameof(Omega.Psi),  new List<Expression<Func<Alpha, object>>> { a => a.Omega.Psi } }
+			};
+
+			var queryParameters = new QueryParameters
+			{
+				SortingQueryProperties = new List<SortingQueryProperty>
+				{
+					new SortingQueryProperty
+					{
+						PropertyName = nameof(Alpha.Beta),
+						SortOrder = SortOrder.Descending
+					},
+					new SortingQueryProperty
+					{
+						PropertyName = nameof(Omega.Psi),
+						SortOrder = SortOrder.Ascending
+					}
+				}
+			};
+
+			var data = new WhereQuerySettings
+			{
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Alpha), "a" },
+					{ typeof(Omega), "o" }
 				}
 			};
 

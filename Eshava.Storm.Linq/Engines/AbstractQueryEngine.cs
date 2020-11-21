@@ -76,6 +76,11 @@ namespace Eshava.Storm.Linq.Engines
 				return ProcessMethodCallExpression(methodCallExpression, data);
 			}
 
+			if (expression.NodeType == ExpressionType.Parameter)
+			{
+				return ProcessParameterExpression(expression as ParameterExpression, data);
+			}
+
 			return "";
 		}
 
@@ -144,9 +149,26 @@ namespace Eshava.Storm.Linq.Engines
 		private string ProcessMemberExpression(MemberExpression memberExpression, WhereQueryData data)
 		{
 			var property = memberExpression.Member.Name;
+			var memberDataType = GetDataType(memberExpression.Member);
+
+			if (memberDataType != default && data.PropertyTypeMappings.ContainsKey(memberDataType))
+			{
+				return data.PropertyTypeMappings[memberDataType];
+			}
+
 			var parent = ProcessExpression(memberExpression.Expression, data);
 
 			return $"{parent}.{property}";
+		}
+
+		private string ProcessParameterExpression(ParameterExpression parameterExpression, WhereQueryData data)
+		{
+			if (data.PropertyTypeMappings.ContainsKey(parameterExpression.Type))
+			{
+				return data.PropertyTypeMappings[parameterExpression.Type];
+			}
+
+			return "";
 		}
 
 		private string ProcessDisplayClassConstantExpression(MemberExpression memberExpression, WhereQueryData data)
@@ -290,7 +312,7 @@ namespace Eshava.Storm.Linq.Engines
 
 			data.QueryParameter[parameterName] = manipulate(data.QueryParameter[parameterName]);
 		}
-			
+
 		private object GetValueFromDisplayClass(MemberInfo memberInfo, ConstantExpression constantExpression)
 		{
 			var value = default(object);
@@ -304,6 +326,20 @@ namespace Eshava.Storm.Linq.Engines
 			}
 
 			return value;
+		}
+
+		private Type GetDataType(MemberInfo memberInfo)
+		{
+			if (memberInfo.MemberType == MemberTypes.Field)
+			{
+				return ((FieldInfo)memberInfo).FieldType;
+			}
+			else if (memberInfo.MemberType == MemberTypes.Property)
+			{
+				return ((PropertyInfo)memberInfo).PropertyType;
+			}
+
+			return null;
 		}
 
 	}

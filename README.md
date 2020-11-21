@@ -401,15 +401,25 @@ public static string AppendSkipAndTake(this string sqlQuery, int skip, int take)
 
 Recommended settings
 ------------------------------------------------------------
-For the four extension method it is recommended to pass property name mappings.
+For the four extension method it is recommended to pass property name mappings. This can be achieved in two different ways, explicit or implicit. 
 ```csharp
+public class QuerySettings
+{
+	public Dictionary<string, string> PropertyMappings { get; set; }
+	public Dictionary<Type, string> PropertyTypeMappings { get; set; }
+}
+	
 public class WhereQuerySettings : QuerySettings
 {
 	public Dictionary<string, object> QueryParameter { get; set; }
 }
 ```
 
-Example usage:
+##### Example usage:
+
+The Alpha and Omega classes each represent a table and are joined in the example and have the aliases "a" and "o  
+A possible member expression could be `p => p.Omega.Psi` und should be translated to `o.Psi`. Therefore a mapping must be created.
+
 ```csharp
 public class Alpha
 {
@@ -422,12 +432,19 @@ public class Omega
     public string Psi { get; set; }    
 }
 ```
-The Alpha and Omega classes each represent a table and are joined in the example and have the aliases "a" and "o  
-A possible member expression could be `p => p.Omega.Psi` und should be translated to `o.Psi`.
-Therefore a mapping must be created. During processing the expression `p => p.Omega.Psi` becomes the string `.Omega.Psi`.
+
+##### Explicit way
+During processing the expression `p => p.Omega.Psi` becomes the string `.Omega.Psi`.
 So that the mapping looks like:
 ```csharp
-settings.QueryParameter.Add(".Omega.Psi","o.Psi");
+settings.PropertyMappings.Add(".Omega.Psi","o.Psi");
+```
+
+##### Implicit way
+During processing the expression `p => p.Omega.Psi` becomes the string `.Omega.Psi`.
+So that the mapping looks like:
+```csharp
+settings.PropertyTypeMappings.Add(typeof(Omega),"o");
 ```
 
 Comming soon

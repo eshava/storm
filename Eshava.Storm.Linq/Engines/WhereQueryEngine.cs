@@ -49,6 +49,7 @@ namespace Eshava.Storm.Linq.Engines
 			var data = new WhereQueryData
 			{
 				PropertyMappings = settings?.PropertyMappings ?? new Dictionary<string, string>(),
+				PropertyTypeMappings = settings?.PropertyTypeMappings ?? new Dictionary<Type, string>(),
 				QueryParameter = result.QueryParameter
 			};
 
