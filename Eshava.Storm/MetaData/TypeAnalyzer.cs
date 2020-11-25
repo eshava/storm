@@ -66,10 +66,22 @@ namespace Eshava.Storm.MetaData
 		{
 			foreach (var propertyInfo in entity.Type.GetProperties())
 			{
-				var property = default(Property);
-
 				if (!propertyInfo.CanWrite || !propertyInfo.CanRead)
 				{
+					continue;
+				}
+
+				var property = entity.GetProperty(propertyInfo.Name);
+				if (property != default && property.IsIgnored)
+				{
+					continue;
+				}
+				else if (property == default && ShouldIgnoreProperty(propertyInfo))
+				{
+					property = new Property(propertyInfo.Name, propertyInfo.PropertyType, propertyInfo, Enums.ConfigurationSource.DataAnnotation);
+					property.Ignore();
+					entity.AddProperty(property);
+
 					continue;
 				}
 
@@ -192,6 +204,11 @@ namespace Eshava.Storm.MetaData
 			{
 				property.SetPrimiaryKey(true, Enums.ConfigurationSource.Convention);
 			}
+		}
+
+		private static bool ShouldIgnoreProperty(PropertyInfo propertyInfo)
+		{
+			return propertyInfo.GetCustomAttribute<NotMappedAttribute>() != default;
 		}
 	}
 }

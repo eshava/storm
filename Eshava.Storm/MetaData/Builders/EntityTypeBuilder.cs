@@ -65,5 +65,13 @@ namespace Eshava.Storm.MetaData.Builders
 		{
 			return new PropertyBuilder<TProperty>(_entity, propertyExpression.GetMemberAccess(), ConfigurationSource.Explicit);
 		}
+
+		public EntityTypeBuilder<TEntity> Ignore<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression)
+		{
+			var propertyBuilder = new PropertyBuilder<TProperty>(_entity, propertyExpression.GetMemberAccess(), ConfigurationSource.Explicit);
+			propertyBuilder.Ignore();
+
+			return this;
+		}
 	}
 }

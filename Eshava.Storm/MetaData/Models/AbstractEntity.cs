@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Eshava.Storm.MetaData.Enums;
 
 namespace Eshava.Storm.MetaData.Models
@@ -34,7 +35,7 @@ namespace Eshava.Storm.MetaData.Models
 
 		public IEnumerable<Property> GetProperties()
 		{
-			return Properties.Values;
+			return Properties.Values.Where(p => !p.IsIgnored);
 		}
 	}
 }

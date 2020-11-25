@@ -318,6 +318,7 @@ public static Task BulkInsertAsync<T>(this SqlConnection connection, IEnumerable
 ## Configuration via attributes
 
 * `KeyAttribute`
+* `NotMappedAttribute`
 * `DatabaseGeneratedAttribute`
 * `ColumnAttribute`
 * `TableAttribute`

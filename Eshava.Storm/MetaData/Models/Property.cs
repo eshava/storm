@@ -29,6 +29,7 @@ namespace Eshava.Storm.MetaData.Models
 		public bool IsPrimaryKey { get; private set; }
 		public bool IsOwnsOne { get; private set; }
 		public bool IsNoClass { get; set; }
+		public bool IsIgnored { get; private set; }
 		public OwnsOneEntity OwnsOne { get; private set; }
 		public string ColumnName { get; private set; }
 
@@ -37,6 +38,11 @@ namespace Eshava.Storm.MetaData.Models
 		{
 			IsPrimaryKey = isPrimaryKey;
 			ConfigurationSource = configurationSource;
+		}
+
+		public void Ignore()
+		{
+			IsIgnored = true;
 		}
 
 		public void SetOwnsOneEntity(OwnsOneEntity entity)
@@ -57,8 +63,8 @@ namespace Eshava.Storm.MetaData.Models
 			{
 				throw new ArgumentException(
 					String.Format(
-						MessageConstants.InvalidPropertyOption, 
-						Name, 
+						MessageConstants.InvalidPropertyOption,
+						Name,
 						nameof(DatabaseGeneratedOption),
 						option,
 						"OwnsOne Properties"
