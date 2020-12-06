@@ -61,7 +61,7 @@ namespace Eshava.Storm.Linq.Engines
 					sql.AppendLine("AND");
 				}
 
-				sql.AppendLine(ProcessExpression(queryCondition.Body, data));
+				sql.AppendLine(ProcessExpression(queryCondition.Body, data, null));
 			}
 
 			result.Sql = sql.ToString();

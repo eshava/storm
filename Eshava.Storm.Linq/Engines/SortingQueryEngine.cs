@@ -58,7 +58,7 @@ namespace Eshava.Storm.Linq.Engines
 					sql.Append(", ");
 				}
 
-				var member = MapPropertyPath(data, ProcessExpression(orderByCondition.Member, data));
+				var member = MapPropertyPath(data, ProcessExpression(orderByCondition.Member, data,System.Linq.Expressions.ExpressionType.Default));
 				sql.Append(member);
 				sql.Append(" ");
 				sql.Append(orderByCondition.SortOrder == Core.Linq.Enums.SortOrder.Ascending ? "ASC" : "DESC");
