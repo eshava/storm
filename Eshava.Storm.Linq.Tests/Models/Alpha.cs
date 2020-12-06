@@ -11,5 +11,6 @@ namespace Eshava.Storm.Linq.Tests.Models
 		public Color Delta { get; set; }
 		public int Epsilon { get; set; }
 		public Omega Omega { get; set; }
+		public bool IsActive { get; set; }
 	}
 }

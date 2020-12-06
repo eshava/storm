@@ -34,7 +34,7 @@ namespace Eshava.Storm.Linq.Engines
 			{  ExpressionType.OrElse, "OR" }
 		};
 
-		protected string ProcessExpression(Expression expression, WhereQueryData data)
+		protected string ProcessExpression(Expression expression, WhereQueryData data, ExpressionType? parentExpressionType)
 		{
 			var unaryExpression = expression as UnaryExpression;
 			if (unaryExpression != default && expression.NodeType == ExpressionType.Not)
@@ -61,7 +61,9 @@ namespace Eshava.Storm.Linq.Engines
 					return ProcessDisplayClassConstantExpression(memberExpression, data);
 				}
 
-				return ProcessMemberExpression(memberExpression, data);
+				var result = ProcessMemberExpression(memberExpression, data);
+
+				return CheckMemberExpressionBooleanPropertyIssue(data, parentExpressionType, result);
 			}
 
 			var constantExpression = expression as ConstantExpression;
@@ -106,8 +108,11 @@ namespace Eshava.Storm.Linq.Engines
 
 		private string ProcessBinaryExpression(BinaryExpression binaryExpression, WhereQueryData data)
 		{
-			var left = ProcessExpression(binaryExpression.Left, data);
-			var right = ProcessExpression(binaryExpression.Right, data);
+			var isPropertyIssueLeft = binaryExpression.Left.NodeType == ExpressionType.MemberAccess && IsCombinationType(binaryExpression.NodeType);
+			var isPropertyIssueRight = binaryExpression.Right.NodeType == ExpressionType.MemberAccess && IsCombinationType(binaryExpression.NodeType);
+
+			var left = ProcessExpression(binaryExpression.Left, data, isPropertyIssueLeft ? null : ExpressionType.Default);
+			var right = ProcessExpression(binaryExpression.Right, data, isPropertyIssueRight ? null : ExpressionType.Default);
 
 			if (!_expressionTypeMappings.ContainsKey(binaryExpression.NodeType))
 			{
@@ -149,7 +154,7 @@ namespace Eshava.Storm.Linq.Engines
 		private string ProcessMemberExpression(MemberExpression memberExpression, WhereQueryData data)
 		{
 			var property = memberExpression.Member.Name;
-			var isNullableProperty = memberExpression.Member.DeclaringType.IsGenericType &&  memberExpression.Member.DeclaringType.GetGenericTypeDefinition() == typeof(Nullable<>);
+			var isNullableProperty = memberExpression.Member.DeclaringType.IsGenericType && memberExpression.Member.DeclaringType.GetGenericTypeDefinition() == typeof(Nullable<>);
 			var memberDataType = GetDataType(memberExpression.Member);
 
 			if (memberDataType != default && data.PropertyTypeMappings.ContainsKey(memberDataType))
@@ -157,7 +162,7 @@ namespace Eshava.Storm.Linq.Engines
 				return data.PropertyTypeMappings[memberDataType];
 			}
 
-			var parent = ProcessExpression(memberExpression.Expression, data);
+			var parent = ProcessExpression(memberExpression.Expression, data, memberExpression.NodeType);
 
 			//DisplayClass
 			if (!parent.IsNullOrEmpty() && parent.StartsWith("@") && !property.IsNullOrEmpty())
@@ -196,17 +201,24 @@ namespace Eshava.Storm.Linq.Engines
 			var value = GetValueFromDisplayClass(memberExpression.Member, constantExpression);
 			var newConstantExpression = Expression.Constant(value, memberExpression.Type);
 
-			return ProcessExpression(newConstantExpression, data);
+			return ProcessExpression(newConstantExpression, data, memberExpression.NodeType);
 		}
 
 		private string ProcessUnaryExpressionConvert(UnaryExpression unaryExpression, WhereQueryData data)
 		{
-			return ProcessExpression(unaryExpression.Operand, data);
+			return ProcessExpression(unaryExpression.Operand, data, unaryExpression.NodeType);
 		}
 
 		private string ProcessUnaryExpressionNot(UnaryExpression unaryExpression, WhereQueryData data)
 		{
-			return $"NOT({ProcessExpression(unaryExpression.Operand, data)})";
+			var expressionResult = ProcessExpression(unaryExpression.Operand, data, unaryExpression.NodeType);
+
+			if (!expressionResult.IsNullOrEmpty() && expressionResult.StartsWith("(") && expressionResult.EndsWith(")"))
+			{
+				return $"NOT{expressionResult}";
+			}
+
+			return $"NOT({expressionResult})";
 		}
 
 		private string ProcessConstantExpression(ConstantExpression constantExpression, WhereQueryData data)
@@ -245,13 +257,13 @@ namespace Eshava.Storm.Linq.Engines
 			if (method == METHOD_CONTAINS && methodCallExpression.Arguments.Count == 2)
 			{
 				//DisplayClass
-				rawProperty = ProcessExpression(methodCallExpression.Arguments.First(), data);
-				value = ProcessExpression(methodCallExpression.Arguments.Last(), data);
+				rawProperty = ProcessExpression(methodCallExpression.Arguments.First(), data, methodCallExpression.NodeType);
+				value = ProcessExpression(methodCallExpression.Arguments.Last(), data, methodCallExpression.NodeType);
 			}
 			else
 			{
-				rawProperty = ProcessExpression(methodCallExpression.Object, data);
-				value = ProcessExpression(methodCallExpression.Arguments.First(), data);
+				rawProperty = ProcessExpression(methodCallExpression.Object, data, methodCallExpression.NodeType);
+				value = ProcessExpression(methodCallExpression.Arguments.First(), data, methodCallExpression.NodeType);
 			}
 
 			var property = "";
@@ -305,7 +317,7 @@ namespace Eshava.Storm.Linq.Engines
 
 			// Inner function expression
 			var lambdaExpression = methodCallExpression.Arguments.Last() as LambdaExpression;
-			var lambdaAsQuery = ProcessExpression(lambdaExpression.Body, data);
+			var lambdaAsQuery = ProcessExpression(lambdaExpression.Body, data, methodCallExpression.NodeType);
 
 			var queryParts = new List<string>();
 			foreach (var item in enumerable)
@@ -356,5 +368,31 @@ namespace Eshava.Storm.Linq.Engines
 			return null;
 		}
 
+		private string CheckMemberExpressionBooleanPropertyIssue(WhereQueryData data, ExpressionType? parentExpressionType, string result)
+		{
+			if (parentExpressionType == ExpressionType.Convert 
+				|| parentExpressionType == ExpressionType.Default 
+				|| parentExpressionType == ExpressionType.MemberAccess 
+				|| parentExpressionType == ExpressionType.Call)
+			{
+				return result;
+			}
+
+			// the member expression is properly a boolean expression like "p => p.PropertyName", 
+			// so that the expression have to be transformed to "p => p.PropertyName == true"
+			var index = data.Index;
+			data.QueryParameter.Add("p" + index, true);
+			data.Index++;
+
+			return $"({MapPropertyPath(data, result)} = @p{index})";
+		}
+
+		private static bool IsCombinationType(ExpressionType expressionType)
+		{
+			return expressionType == ExpressionType.And 
+				|| expressionType == ExpressionType.AndAlso 
+				|| expressionType == ExpressionType.Or 
+				|| expressionType == ExpressionType.OrElse;
+		}
 	}
 }

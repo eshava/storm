@@ -24,6 +24,71 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		}
 
 		[TestMethod]
+		public void CalculateWhereConditionsBooleanPropertyTest()
+		{
+			// Arrange
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.IsActive && !alpha.IsActive,
+				alpha => alpha.IsActive,
+				alpha => !alpha.IsActive,
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(4);
+			result.QueryParameter.ContainsKey("p0").Should().BeTrue();
+			result.QueryParameter["p0"].Should().Be(true);
+			result.QueryParameter.ContainsKey("p1").Should().BeTrue();
+			result.QueryParameter["p1"].Should().Be(true);
+			result.QueryParameter.ContainsKey("p2").Should().BeTrue();
+			result.QueryParameter["p2"].Should().Be(true);
+			result.QueryParameter.ContainsKey("p3").Should().BeTrue();
+			result.QueryParameter["p3"].Should().Be(true);
+
+
+			var sqlParts = result.Sql.Split(Environment.NewLine);
+			sqlParts[0].Should().Be("((IsActive = @p0) AND NOT(IsActive = @p1))");
+			sqlParts[1].Should().Be("AND");
+			sqlParts[2].Should().Be("(IsActive = @p2)");
+			sqlParts[3].Should().Be("AND");
+			sqlParts[4].Should().Be("NOT(IsActive = @p3)");
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsSubObjectBooleanPropertyTest()
+		{
+			// Arrange
+			var data = new WhereQuerySettings
+			{
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Alpha), "a" },
+					{ typeof(Omega), "o" }
+				}
+			};
+
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => !alpha.IsActive && alpha.Omega.IsActive
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions(data);
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(2);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be(true);
+			result.QueryParameter.Keys.Last().Should().Be("p1");
+			result.QueryParameter.Values.Last().Should().Be(true);
+
+			result.Sql.Should().Be($"(NOT(a.IsActive = @p0) AND (o.IsActive = @p1)){Environment.NewLine}");
+		}
+
+		[TestMethod]
 		public void CalculateWhereConditionsEqualTest()
 		{
 			// Arrange
