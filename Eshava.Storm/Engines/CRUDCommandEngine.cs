@@ -61,7 +61,7 @@ namespace Eshava.Storm.Engines
 					sqlValues.Append(property.Prefix);
 				}
 
-				sqlColumns.Append(property.ColumnName);
+				sqlColumns.Append($"[{property.ColumnName}]");
 				sqlValues.Append(property.PropertyInfo.Name);
 
 				parameters.Add(new KeyValuePair<string, object>($"{property.Prefix}{property.PropertyInfo.Name}", property.PropertyInfo.GetValue(property.Entity)));
@@ -145,7 +145,7 @@ namespace Eshava.Storm.Engines
 					sql.Append(property.Prefix);
 				}
 
-				sql.Append(property.ColumnName);
+				sql.Append($"[{property.ColumnName}]");
 				sql.Append(" = @");
 
 				if (!property.Prefix.IsNullOrEmpty())
