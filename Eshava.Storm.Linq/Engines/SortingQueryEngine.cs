@@ -15,6 +15,11 @@ namespace Eshava.Storm.Linq.Engines
 
 		public string AddSortConditionsToQuery(IEnumerable<OrderByCondition> orderByConditions, string sqlQuery, QuerySettings settings)
 		{
+			if (orderByConditions == default || !orderByConditions.Any())
+			{
+				return sqlQuery;
+			}
+
 			var orderBy = CalculateSortConditions(orderByConditions, settings);
 
 			var existence = sqlQuery.CheckExistence(SQL_ORDERBY);

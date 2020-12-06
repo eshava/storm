@@ -44,6 +44,90 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		}
 
 		[TestMethod]
+		public void CalculateWhereConditionsEqualObjectVauleTest()
+		{
+			// Arrange
+			var filterAlpha = new Alpha { Gamma = "One" };
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Gamma == filterAlpha.Gamma
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("One");
+
+			result.Sql.Should().Be("(Gamma = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsEqualSubObjectVauleTest()
+		{
+			// Arrange
+			var filterAlpha = new Alpha { Omega = new Omega { Psi = "One" } };
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Gamma == filterAlpha.Omega.Psi
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("One");
+
+			result.Sql.Should().Be("(Gamma = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsEqualSubObjectNullableVauleTest()
+		{
+			// Arrange
+			var filterAlpha = new Alpha { Omega = new Omega { Id = Guid.Parse("9106c6e8-ccbe-4eb6-8d95-5073ef6d1aa0") } };
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Id == filterAlpha.Omega.Id.Value
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be(Guid.Parse("9106c6e8-ccbe-4eb6-8d95-5073ef6d1aa0"));
+
+			result.Sql.Should().Be("(Id = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsEqualNullableVauleTest()
+		{
+			// Arrange
+			Guid? value = Guid.Parse("9106c6e8-ccbe-4eb6-8d95-5073ef6d1aa0");
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Id == value
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be(Guid.Parse("9106c6e8-ccbe-4eb6-8d95-5073ef6d1aa0"));
+
+			result.Sql.Should().Be("(Id = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
 		public void CalculateWhereConditionsNotEqualTest()
 		{
 			// Arrange
@@ -1028,6 +1112,29 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 
 			// Assert
 			result.Should().Be($"{query}{Environment.NewLine}ORDER BY{Environment.NewLine}a.Beta DESC, o.Psi ASC");
+		}
+
+		[TestMethod]
+		public void AddSortConditionsToQueryNoConditionsTest()
+		{
+			// Arrange
+			var query = "SELECT * FROM Alpha a ORDER BY a.Gamma ASC";
+			var sortingEngine = new SortingQueryEngine();
+		
+			var queryParameters = new QueryParameters
+			{
+				SortingQueryProperties = new List<SortingQueryProperty>()
+			};
+
+			var data = new WhereQuerySettings();
+
+			var orderByConditions = sortingEngine.BuildSortConditions<Alpha>(queryParameters);
+
+			// Act
+			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+
+			// Assert
+			result.Should().Be(query);
 		}
 	}
 }
