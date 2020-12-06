@@ -149,6 +149,7 @@ namespace Eshava.Storm.Linq.Engines
 		private string ProcessMemberExpression(MemberExpression memberExpression, WhereQueryData data)
 		{
 			var property = memberExpression.Member.Name;
+			var isNullableProperty = memberExpression.Member.DeclaringType.IsGenericType &&  memberExpression.Member.DeclaringType.GetGenericTypeDefinition() == typeof(Nullable<>);
 			var memberDataType = GetDataType(memberExpression.Member);
 
 			if (memberDataType != default && data.PropertyTypeMappings.ContainsKey(memberDataType))
@@ -157,6 +158,19 @@ namespace Eshava.Storm.Linq.Engines
 			}
 
 			var parent = ProcessExpression(memberExpression.Expression, data);
+
+			//DisplayClass
+			if (!parent.IsNullOrEmpty() && parent.StartsWith("@") && !property.IsNullOrEmpty())
+			{
+				if (!isNullableProperty)
+				{
+					var parameterName = parent.Substring(1);
+					var value = data.QueryParameter[parameterName];
+					data.QueryParameter[parameterName] = value.GetType().GetProperty(property).GetValue(value);
+				}
+
+				return parent;
+			}
 
 			return $"{parent}.{property}";
 		}
