@@ -10,6 +10,7 @@ namespace Eshava.Storm.Linq.Engines
 {
 	internal abstract class AbstractQueryEngine
 	{
+		private static readonly Type _dateTimeType = typeof(DateTime);
 		private const string PARAMETER_PLACEHOLDER = "###";
 		private const string METHOD_CONTAINS = "contains";
 		private const string METHOD_ANY = "any";
@@ -56,7 +57,11 @@ namespace Eshava.Storm.Linq.Engines
 			var memberExpression = expression as MemberExpression;
 			if (memberExpression != default && expression.NodeType == ExpressionType.MemberAccess)
 			{
-				if (memberExpression.Expression.NodeType == ExpressionType.Constant)
+				if (memberExpression.Expression == default)
+				{
+					return ProcessExpressionlessMemberExpression(data, memberExpression);
+				}
+				else if (memberExpression.Expression.NodeType == ExpressionType.Constant)
 				{
 					return ProcessDisplayClassConstantExpression(memberExpression, data);
 				}
@@ -81,6 +86,19 @@ namespace Eshava.Storm.Linq.Engines
 			if (expression.NodeType == ExpressionType.Parameter)
 			{
 				return ProcessParameterExpression(expression as ParameterExpression, data);
+			}
+
+			return "";
+		}
+
+		private string ProcessExpressionlessMemberExpression(WhereQueryData data, MemberExpression memberExpression)
+		{
+			if (memberExpression.Type == _dateTimeType)
+			{
+				var value = GetValueFromDisplayClass(memberExpression.Member, null);
+				var newConstantExpression = Expression.Constant(value, memberExpression.Type);
+
+				return ProcessExpression(newConstantExpression, data, memberExpression.NodeType);
 			}
 
 			return "";
@@ -344,11 +362,11 @@ namespace Eshava.Storm.Linq.Engines
 			var value = default(object);
 			if (memberInfo.MemberType == MemberTypes.Field)
 			{
-				value = ((FieldInfo)memberInfo).GetValue(constantExpression.Value);
+				value = ((FieldInfo)memberInfo).GetValue(constantExpression?.Value);
 			}
 			else if (memberInfo.MemberType == MemberTypes.Property)
 			{
-				value = ((PropertyInfo)memberInfo).GetValue(constantExpression.Value);
+				value = ((PropertyInfo)memberInfo).GetValue(constantExpression?.Value);
 			}
 
 			return value;
@@ -370,9 +388,9 @@ namespace Eshava.Storm.Linq.Engines
 
 		private string CheckMemberExpressionBooleanPropertyIssue(WhereQueryData data, ExpressionType? parentExpressionType, string result)
 		{
-			if (parentExpressionType == ExpressionType.Convert 
-				|| parentExpressionType == ExpressionType.Default 
-				|| parentExpressionType == ExpressionType.MemberAccess 
+			if (parentExpressionType == ExpressionType.Convert
+				|| parentExpressionType == ExpressionType.Default
+				|| parentExpressionType == ExpressionType.MemberAccess
 				|| parentExpressionType == ExpressionType.Call)
 			{
 				return result;
@@ -389,9 +407,9 @@ namespace Eshava.Storm.Linq.Engines
 
 		private static bool IsCombinationType(ExpressionType expressionType)
 		{
-			return expressionType == ExpressionType.And 
-				|| expressionType == ExpressionType.AndAlso 
-				|| expressionType == ExpressionType.Or 
+			return expressionType == ExpressionType.And
+				|| expressionType == ExpressionType.AndAlso
+				|| expressionType == ExpressionType.Or
 				|| expressionType == ExpressionType.OrElse;
 		}
 	}

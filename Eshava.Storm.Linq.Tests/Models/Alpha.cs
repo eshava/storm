@@ -12,5 +12,6 @@ namespace Eshava.Storm.Linq.Tests.Models
 		public int Epsilon { get; set; }
 		public Omega Omega { get; set; }
 		public bool IsActive { get; set; }
+		public DateTime? Zeta { get; set; }
 	}
 }

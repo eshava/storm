@@ -514,6 +514,38 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		}
 
 		[TestMethod]
+		public void CalculateWhereConditionsDateTimeTest()
+		{
+			// Arrange
+			var values = new List<Color> { Color.Black, Color.White };
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Zeta >= DateTime.UtcNow,
+				alpha => alpha.Zeta <= DateTime.Now,
+				alpha => alpha.Zeta == DateTime.Today
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(3);
+			result.QueryParameter.ContainsKey("p0").Should().BeTrue();
+			DateTime.UtcNow.Subtract((DateTime)result.QueryParameter["p0"]).Seconds.Should().BeInRange(0, 2);
+			result.QueryParameter.ContainsKey("p1").Should().BeTrue();
+			DateTime.Now.Subtract((DateTime)result.QueryParameter["p1"]).Seconds.Should().BeInRange(0, 2);
+			result.QueryParameter.ContainsKey("p2").Should().BeTrue();
+			result.QueryParameter["p2"].Should().Be(DateTime.Today);
+
+			var sqlParts = result.Sql.Split(Environment.NewLine);
+			sqlParts[0].Should().Be("(Zeta >= @p0)");
+			sqlParts[1].Should().Be("AND");
+			sqlParts[2].Should().Be("(Zeta <= @p1)");
+			sqlParts[3].Should().Be("AND");
+			sqlParts[4].Should().Be("(Zeta = @p2)");
+		}
+
+		[TestMethod]
 		public void CalculateWhereConditionsAnyOrTest()
 		{
 			// Arrange
@@ -1185,7 +1217,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			// Arrange
 			var query = "SELECT * FROM Alpha a ORDER BY a.Gamma ASC";
 			var sortingEngine = new SortingQueryEngine();
-		
+
 			var queryParameters = new QueryParameters
 			{
 				SortingQueryProperties = new List<SortingQueryProperty>()
