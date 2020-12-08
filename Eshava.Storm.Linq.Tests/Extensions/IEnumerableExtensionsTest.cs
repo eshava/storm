@@ -804,6 +804,38 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		}
 
 		[TestMethod]
+		public void CalculateWhereConditionsPropertyAndPropertyTypeMappingSubClassTest()
+		{
+			// Arrange
+			var data = new WhereQuerySettings
+			{
+				PropertyMappings = new Dictionary<string, string>
+				{
+					{ "a.Omega.Psi", "o.Psi" }
+				},
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Alpha), "a" }
+				}
+			};
+
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => alpha.Omega.Psi == "One"
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions(data);
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("One");
+
+			result.Sql.Should().Be("(o.Psi = @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
 		public void CalculateWhereConditionsPropertyTypeMappingTest()
 		{
 			// Arrange
@@ -839,6 +871,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			{
 				PropertyTypeMappings = new Dictionary<Type, string>
 				{
+					{ typeof(Alpha), "a" },
 					{ typeof(Omega), "o" }
 				}
 			};
