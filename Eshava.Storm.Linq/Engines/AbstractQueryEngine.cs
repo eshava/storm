@@ -106,7 +106,7 @@ namespace Eshava.Storm.Linq.Engines
 
 		protected string MapPropertyPath(QuerySettings data, string propertyName)
 		{
-			if (propertyName.IsNullOrEmpty() || !propertyName.StartsWith("."))
+			if (propertyName.IsNullOrEmpty() || (!propertyName.StartsWith(".") && !data.PropertyMappings.ContainsKey(propertyName)))
 			{
 				return propertyName;
 			}
