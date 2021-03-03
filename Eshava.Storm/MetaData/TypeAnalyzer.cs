@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Reflection;
@@ -83,6 +84,13 @@ namespace Eshava.Storm.MetaData
 					entity.AddProperty(property);
 
 					continue;
+				}
+
+				if (property == default && ShouldBeReadOnlyProperty(propertyInfo))
+				{
+					property = new Property(propertyInfo.Name, propertyInfo.PropertyType, propertyInfo, Enums.ConfigurationSource.DataAnnotation);
+					property.SetIsReadOnly();
+					entity.AddProperty(property);
 				}
 
 				var propertyType = propertyInfo.PropertyType.GetDataType();
@@ -209,6 +217,17 @@ namespace Eshava.Storm.MetaData
 		private static bool ShouldIgnoreProperty(PropertyInfo propertyInfo)
 		{
 			return propertyInfo.GetCustomAttribute<NotMappedAttribute>() != default;
+		}
+
+		private static bool ShouldBeReadOnlyProperty(PropertyInfo propertyInfo)
+		{
+			var attribute = propertyInfo.GetCustomAttribute<ReadOnlyAttribute>();
+			if (attribute == default)
+			{
+				return false;
+			}
+
+			return attribute.IsReadOnly;
 		}
 	}
 }

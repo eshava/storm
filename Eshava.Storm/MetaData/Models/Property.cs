@@ -30,6 +30,7 @@ namespace Eshava.Storm.MetaData.Models
 		public bool IsOwnsOne { get; private set; }
 		public bool IsNoClass { get; set; }
 		public bool IsIgnored { get; private set; }
+		public bool IsReadOnly { get; private set; }
 		public OwnsOneEntity OwnsOne { get; private set; }
 		public string ColumnName { get; private set; }
 
@@ -43,6 +44,11 @@ namespace Eshava.Storm.MetaData.Models
 		public void Ignore()
 		{
 			IsIgnored = true;
+		}
+
+		public void SetIsReadOnly()
+		{
+			IsReadOnly = true;
 		}
 
 		public void SetOwnsOneEntity(OwnsOneEntity entity)
