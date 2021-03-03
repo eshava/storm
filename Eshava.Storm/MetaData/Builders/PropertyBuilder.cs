@@ -32,6 +32,11 @@ namespace Eshava.Storm.MetaData.Builders
 			_property.SetPrimiaryKey(true, ConfigurationSource.Explicit);
 		}
 
+		public void IsReadOnly()
+		{
+			_property.SetIsReadOnly();
+		}
+
 		public void Ignore()
 		{
 			_property.Ignore();
