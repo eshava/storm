@@ -80,7 +80,7 @@ namespace Eshava.Storm.Extensions
 			if (hasMatchesAliases)
 			{
 				var matches = RegExStrings.TablesAliases.Matches(sql);
-				ExecuteRegEx(matches, 3, tableAliases);
+				ExecuteRegEx(matches, 4, tableAliases);
 			}
 
 			if (hasMatchesAliasesWithAS)

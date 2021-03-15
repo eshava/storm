@@ -75,7 +75,7 @@ namespace Eshava.Storm
 		private void PreProcessProperties(PreProcessPropertyInformation information)
 		{
 			information.Entity = information.Entity ?? EntityCache.GetEntity(information.Instance.GetType()) ?? TypeAnalyzer.AnalyzeType(information.Instance.GetType());
-			
+
 			foreach (var property in information.Entity.GetProperties())
 			{
 				if (property.IsOwnsOne)
@@ -213,25 +213,25 @@ namespace Eshava.Storm
 				return;
 			}
 
-			var sqlHashCode = sql.GetHashCode();
-			var tableAnalysisResult = ReaderInformationCache.GetReaderTableAnalysisResult(sqlHashCode);
-			if (tableAnalysisResult != default)
-			{
-				_tableAnalysisResult = tableAnalysisResult;
+			//var sqlHashCode = sql.GetHashCode();
+			//var tableAnalysisResult = ReaderInformationCache.GetReaderTableAnalysisResult(sqlHashCode);
+			//if (tableAnalysisResult != default)
+			//{
+			//	_tableAnalysisResult = tableAnalysisResult;
 
-				return;
-			}
+			//	return;
+			//}
 
 			var tableAliases = sql.GetTableAliases();
 			var aliasOccurrences = CalculateTableAliasUsage(sql, tableAliases);
 
-			tableAnalysisResult = new TableAnalysisResult
+			var tableAnalysisResult = new TableAnalysisResult
 			{
 				TableAliases = tableAliases,
 				AliasOccurrences = aliasOccurrences
 			};
 
-			ReaderInformationCache.AddTableAnalysisResult(sqlHashCode, tableAnalysisResult);
+			//ReaderInformationCache.AddTableAnalysisResult(sqlHashCode, tableAnalysisResult);
 
 			_tableAnalysisResult = tableAnalysisResult;
 		}
@@ -354,7 +354,10 @@ namespace Eshava.Storm
 
 		private void ExecuteReaderAccessItems(IEnumerable<ReaderAccessItem> readerAccessItems)
 		{
-			readerAccessItems = readerAccessItems.OrderBy(rai => rai.Ordinal).ToList();
+			readerAccessItems = readerAccessItems
+				.Where(rai => rai.Ordinal >= 0)
+				.OrderBy(rai => rai.Ordinal)
+				.ToList();
 
 			foreach (var item in readerAccessItems)
 			{
