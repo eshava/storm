@@ -32,7 +32,7 @@ namespace Eshava.Storm.MetaData
 
 			if (entity.TableName.IsNullOrEmpty())
 			{
-				throw new InvalidOperationException($"Table name is no set. Considers using {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.AddType)} before using {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.GetTableName)}");
+				throw new InvalidOperationException($"Table name is no set for {type.Name}. Considers using {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.AddType)} before using {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.GetTableName)}");
 			}
 
 			return entity.TableName;
