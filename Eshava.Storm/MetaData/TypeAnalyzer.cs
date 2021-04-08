@@ -20,6 +20,16 @@ namespace Eshava.Storm.MetaData
 			AnalyzeType(typeof(TEntity));
 		}
 
+		/// <summary>
+		/// Determine table name based on class attribute or name convention, without using the analysis cache
+		/// </summary>
+		/// <typeparam name="TEntity"></typeparam>
+		/// <returns>Table name</returns>
+		public static string GetTableNameWithoutAnalysis<TEntity>() where TEntity : class
+		{
+			return GetTableName(typeof(TEntity));
+		}
+
 		public static string GetTableName<TEntity>() where TEntity : class
 		{
 			var type = typeof(TEntity);
