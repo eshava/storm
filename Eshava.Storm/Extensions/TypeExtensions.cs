@@ -29,6 +29,11 @@ namespace Eshava.Storm.Extensions
 
 			if (TypeHandlerMap.Map.TryGetValue(type, out handler))
 			{
+				if (type.GetDataType() == _typeOfDateTime)
+				{
+					return Settings.EnableDateTimeHighAccuracy ? DbType.DateTime2 : DbType.DateTime;
+				}
+
 				return DbType.Object;
 			}
 
