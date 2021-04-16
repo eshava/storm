@@ -27,6 +27,11 @@ namespace Eshava.Storm.Extensions
 				type = nullUnderlyingType;
 			}
 
+			if (TypeHandlerMap.Map.TryGetValue(type, out handler))
+			{
+				return DbType.Object;
+			}
+
 			if (type.ImplementsIEnumerable())
 			{
 				type = type.GetDataTypeFromIEnumerable();
@@ -56,12 +61,7 @@ namespace Eshava.Storm.Extensions
 			{
 				return DbType.Binary;
 			}
-
-			if (TypeHandlerMap.Map.TryGetValue(type, out handler))
-			{
-				return DbType.Object;
-			}
-			
+						
 			if (demand)
 			{
 				throw new NotSupportedException($"The member {name} of type {type.FullName} cannot be used as a parameter value");
