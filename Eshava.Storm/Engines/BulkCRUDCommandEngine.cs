@@ -69,9 +69,14 @@ namespace Eshava.Storm.Engines
 
 				foreach (var property in properties)
 				{
+					var columnName = property.Prefix.IsNullOrEmpty()
+						? property.ColumnName
+						: property.Prefix + property.ColumnName
+						;
+
 					if (property.TypeHandler == default)
 					{
-						row[property.ColumnName] = property.PropertyInfo.GetValue(property.Entity) ?? DBNull.Value;
+						row[columnName] = property.PropertyInfo.GetValue(property.Entity) ?? DBNull.Value;
 
 						continue;
 					}
@@ -79,13 +84,13 @@ namespace Eshava.Storm.Engines
 					var cellValue = property.PropertyInfo.GetValue(property.Entity);
 					if (cellValue == null)
 					{
-						row[property.ColumnName] = DBNull.Value;
+						row[columnName] = DBNull.Value;
 					}
 					else
 					{
 						var sqlParameter = new SqlParameter();
 						property.TypeHandler.SetValue(sqlParameter, cellValue);
-						row[property.ColumnName] = sqlParameter.Value;
+						row[columnName] = sqlParameter.Value;
 					}
 				}
 
@@ -100,16 +105,21 @@ namespace Eshava.Storm.Engines
 			var dataTable = new DataTable();
 			foreach (var property in properties)
 			{
-				sqlBulkCopy.ColumnMappings.Add(property.ColumnName, property.ColumnName);
+				var columnName = property.Prefix.IsNullOrEmpty()
+					? property.ColumnName
+					: property.Prefix + property.ColumnName
+					;
+
+				sqlBulkCopy.ColumnMappings.Add(columnName, columnName);
 
 				if (property.TypeHandler == default || !property.TypeHandler.ReadAsByteArray)
 				{
-					dataTable.Columns.Add(new DataColumn(property.ColumnName, property.PropertyInfo.PropertyType.GetDataType()));
+					dataTable.Columns.Add(new DataColumn(columnName, property.PropertyInfo.PropertyType.GetDataType()));
 
 					continue;
 				}
 
-				dataTable.Columns.Add(new DataColumn(property.ColumnName, typeof(SqlBytes)));
+				dataTable.Columns.Add(new DataColumn(columnName, typeof(SqlBytes)));
 			}
 
 			return dataTable;
