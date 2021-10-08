@@ -12,6 +12,7 @@ namespace Eshava.Storm.Engines
 {
 	internal class CRUDCommandEngine : AbstractCRUDCommandEngine
 	{
+		private static Type _patchPropertyType = typeof(KeyValuePair<string, object>);
 		private readonly IObjectGenerator _objectGenerator;
 
 		public CRUDCommandEngine(IObjectGenerator objectGenerator)
@@ -91,19 +92,19 @@ namespace Eshava.Storm.Engines
 			commandDefinition.UpdateCommand(sql.ToString(), parameters);
 		}
 
-		public void ProcessUpdateRequest<T>(CommandDefinition<T> commandDefinition, object partialEntity = null) where T : class
+		public void ProcessUpdateRequest<T>(CommandDefinition<T> commandDefinition, object partialEntity = null, IEnumerable<KeyValuePair<string, object>> patchProperties = null) where T : class
 		{
-			var type = CheckCommandConditions(commandDefinition, "update", partialEntity);
+			var type = CheckCommandConditions(commandDefinition, "update", partialEntity, patchProperties);
 
 			var entityTypeResult = EntityCache.GetEntity(type) ?? TypeAnalyzer.AnalyzeType(type);
-			var keyColumns = GetKeyColumns(type, partialEntity?.GetType());
+			var keyColumns = GetKeyColumns(type, partialEntity?.GetType(), patchProperties?.Select(p => p.Key).ToList());
 
 			if (!keyColumns.Any())
 			{
 				throw new ArgumentException("At least one key column property must be defined.");
 			}
 
-			if (partialEntity != default)
+			if (partialEntity != default || patchProperties != default)
 			{
 				commandDefinition.Entity = _objectGenerator.CreateEmptyInstance<T>();
 			}
@@ -112,7 +113,8 @@ namespace Eshava.Storm.Engines
 			{
 				Type = type,
 				Entity = commandDefinition.Entity,
-				PartialEntity = partialEntity
+				PartialEntity = partialEntity,
+				PatchProperties = patchProperties
 			});
 
 			var sql = new StringBuilder();
@@ -154,8 +156,16 @@ namespace Eshava.Storm.Engines
 				{
 					sql.Append(property.Prefix);
 				}
-				sql.AppendLine(property.PropertyInfo.Name);
 
+				if (property.PropertyInfo == default && property.Entity?.GetType() == _patchPropertyType)
+				{
+					sql.AppendLine(property.ColumnName);
+					parameters.Add(new KeyValuePair<string, object>($"{property.Prefix}{property.ColumnName}", ((KeyValuePair<string, object>)property.Entity).Value));
+
+					continue;
+				}
+
+				sql.AppendLine(property.PropertyInfo?.Name);
 				parameters.Add(new KeyValuePair<string, object>($"{property.Prefix}{property.PropertyInfo.Name}", property.PropertyInfo.GetValue(property.Entity)));
 			}
 
@@ -166,7 +176,8 @@ namespace Eshava.Storm.Engines
 				Parameters = parameters,
 				Properties = keyColumns
 			},
-			partialEntity ?? commandDefinition.Entity);
+			partialEntity ?? commandDefinition.Entity,
+			patchProperties);
 
 			commandDefinition.UpdateCommand(sql.ToString(), parameters);
 		}
@@ -207,7 +218,7 @@ namespace Eshava.Storm.Engines
 				throw new NotSupportedException("No key columns available");
 			}
 
-			if (id == null 
+			if (id == null
 			|| id.GetType().ImplementsIEnumerable()
 			|| (keyColumns.Count() == 1 && !id.GetType().IsNoClass())
 			|| (keyColumns.Count() > 1 && !id.GetType().IsClass()))
@@ -241,7 +252,7 @@ namespace Eshava.Storm.Engines
 			commandDefinition.UpdateCommand(query, parameters);
 		}
 
-		private void AppendWhereCondition(WhereCondition condition, object entity)
+		private void AppendWhereCondition(WhereCondition condition, object entity, IEnumerable<KeyValuePair<string, object>> patchProperties = null)
 		{
 			condition.Query.Append("WHERE ");
 
@@ -260,7 +271,8 @@ namespace Eshava.Storm.Engines
 				condition.Query.Append(condition.TableName);
 				condition.Query.Append(".");
 				condition.Query.Append(property.ColumnName);
-				if (property.PropertyInfo.PropertyType.ImplementsIEnumerable())
+				if (property.PropertyInfo?.PropertyType.ImplementsIEnumerable() ?? false
+					|| (patchProperties != default && patchProperties.First(p => p.Key == property.ColumnName).Value.GetType().ImplementsIEnumerable()))
 				{
 					condition.Query.Append(" IN @");
 				}
@@ -268,13 +280,24 @@ namespace Eshava.Storm.Engines
 				{
 					condition.Query.Append(" = @");
 				}
-				condition.Query.AppendLine(property.PropertyInfo.Name);
 
-				condition.Parameters.Add(new KeyValuePair<string, object>(property.PropertyInfo.Name, property.PropertyInfo.GetValue(entity)));
+				if (property.PropertyInfo == default)
+				{
+					condition.Query.AppendLine(property.ColumnName);
+
+					condition.Parameters.Add(new KeyValuePair<string, object>(property.ColumnName, patchProperties.First(p => p.Key == property.ColumnName).Value));
+				}
+				else
+				{
+					condition.Query.AppendLine(property.PropertyInfo.Name);
+
+					condition.Parameters.Add(new KeyValuePair<string, object>(property.PropertyInfo.Name, property.PropertyInfo.GetValue(entity)));
+				}
+				
 			}
 		}
 
-		private Type CheckCommandConditions<T>(CommandDefinition<T> commandDefinition, string action, object partialEntity = null) where T : class
+		private Type CheckCommandConditions<T>(CommandDefinition<T> commandDefinition, string action, object partialEntity = null, IEnumerable<KeyValuePair<string, object>> patchProperties = null) where T : class
 		{
 			var type = typeof(T);
 
@@ -283,7 +306,7 @@ namespace Eshava.Storm.Engines
 				throw new ArgumentException($"Entity to {action} must be a single instance. No enumeration or array.");
 			}
 
-			if (commandDefinition.Entity == default && partialEntity == default)
+			if (commandDefinition.Entity == default && partialEntity == default && (patchProperties == default || patchProperties.Count() == 0))
 			{
 				throw new ArgumentNullException($"Entity to {action} must not be NULL");
 			}

@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections.Generic;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using Eshava.Storm.Engines;
@@ -48,7 +49,24 @@ namespace Eshava.Storm
 				cancellationToken);
 
 			var objectMapper = new ObjectMapper(null, null);
-			new CRUDCommandEngine(objectMapper).ProcessUpdateRequest(commandDefinition, entityToUpdate);
+			new CRUDCommandEngine(objectMapper).ProcessUpdateRequest(commandDefinition, partialEntity: entityToUpdate);
+
+			var result = await new SqlEngine().ExecuteAsync(commandDefinition);
+
+			return result == 1;
+		}
+
+		public static async Task<bool> UpdatePatchAsync<T>(this IDbConnection connection, IEnumerable<KeyValuePair<string, object>> propertiesToUpdate, IDbTransaction transaction = null, int? commandTimeout = null, CancellationToken cancellationToken = default) where T : class
+		{
+			var commandDefinition = new CommandDefinition<T>(
+				connection,
+				null,
+				transaction,
+				commandTimeout,
+				cancellationToken);
+
+			var objectMapper = new ObjectMapper(null, null);
+			new CRUDCommandEngine(objectMapper).ProcessUpdateRequest(commandDefinition, patchProperties: propertiesToUpdate);
 
 			var result = await new SqlEngine().ExecuteAsync(commandDefinition);
 

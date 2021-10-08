@@ -120,7 +120,7 @@ namespace Eshava.Storm.Extensions
 				throw new ArgumentNullException(nameof(type));
 			}
 
-			return type.IsGenericType && ImplementsInterface(type, typeof(IEnumerable));
+			return (type.IsGenericType && ImplementsInterface(type, typeof(IEnumerable))) || type.IsArray;
 		}
 
 		internal static bool ImplementsInterface(this Type type, Type interfaceType)
