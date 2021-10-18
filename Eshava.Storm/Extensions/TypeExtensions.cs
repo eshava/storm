@@ -147,7 +147,9 @@ namespace Eshava.Storm.Extensions
 
 			if (type.ImplementsIEnumerable())
 			{
-				type = type.GetGenericArguments()[0];
+				type = type.IsArray
+					? type.GetElementType()
+					: type.GetGenericArguments()[0];
 			}
 
 			return type;
