@@ -24,6 +24,34 @@ namespace Eshava.Storm
 			SetTableAnalysisResult(sql);
 		}
 
+		public T GetValue<T>(string columnName, string tableAlias = null)
+		{
+			if (ShouldMapClass<T>() || columnName.IsNullOrEmpty())
+			{
+				return default;
+			}
+
+			CalculateColumnCache();
+
+			var requestedTableNames = GetTableNamesFromAlias(tableAlias);
+			var readerAccessItems = new List<ReaderAccessItem>();
+			var information = new PreProcessPropertyInformation
+			{
+				ReaderAccessItems = readerAccessItems,
+				Instance = null,
+				RequestedTableNames = requestedTableNames
+			};
+
+			CollectOrdinal(null, information, columnName.ToLower());
+
+			if (readerAccessItems.Count == 0)
+			{
+				return default;
+			}
+
+			return ExecuteReaderAccessItem<T>(readerAccessItems.First());
+		}
+
 		public T Map<T>(string tableAlias = null)
 		{
 			if (ShouldMapClass<T>())
@@ -93,90 +121,95 @@ namespace Eshava.Storm
 				}
 
 				var columnName = information.ColumnPrefix + property.ColumnName.ToLower();
+				CollectOrdinal(property, information, columnName);
+			}
+		}
 
-				if (!_tableAnalysisResult.ResultTableNames.Any() || !information.RequestedTableNames.Any())
+
+		private void CollectOrdinal(MetaData.Models.Property property, PreProcessPropertyInformation information, string columnName)
+		{
+			if (!_tableAnalysisResult.ResultTableNames.Any() || !information.RequestedTableNames.Any())
+			{
+				// No result analyse result available
+				if (!_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
 				{
-					// No result analyse result available
-					if (!_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
+					var columnNew = _tableAnalysisResult.ColumnCache.Keys.FirstOrDefault(c => c.EndsWith("." + columnName));
+					if (!columnNew.IsNullOrEmpty())
 					{
-						var columnNew = _tableAnalysisResult.ColumnCache.Keys.FirstOrDefault(c => c.EndsWith("." + columnName));
-						if (!columnNew.IsNullOrEmpty())
-						{
-							columnName = columnNew;
-						}
+						columnName = columnNew;
 					}
-
-					if (_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
-					{
-						information.ReaderAccessItems.Add(new ReaderAccessItem
-						{
-							Ordinal = _tableAnalysisResult.ColumnCache[columnName].Last(),
-							Instance = information.Instance,
-							PropertyInfo = property.PropertyInfo
-						});
-					}
-
-					continue;
 				}
 
-				var columnFound = false;
-				foreach (var requestedTableName in information.RequestedTableNames)
+				if (_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
 				{
-					var fullColumnName = $"{requestedTableName.TableName}.{columnName}";
-
-					if (!_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
-					{
-						continue;
-					}
-
-					columnFound = true;
-					if (!_tableAnalysisResult.AliasOccurrences.ContainsKey(requestedTableName.Alias))
-					{
-						if (requestedTableName.Alias == requestedTableName.TableName)
-						{
-							// Alias is an table name
-							information.ReaderAccessItems.Add(new ReaderAccessItem
-							{
-								Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
-								Instance = information.Instance,
-								PropertyInfo = property.PropertyInfo
-							});
-						}
-
-						// Skip property if alias is unknown
-
-						continue;
-					}
-
-					var aliasOccurrence = _tableAnalysisResult.AliasOccurrences[requestedTableName.Alias];
-					if (aliasOccurrence >= _tableAnalysisResult.ColumnCache[fullColumnName].Count)
-					{
-						// Skip if correct column occurrence could not be found
-
-						continue;
-					}
-
 					information.ReaderAccessItems.Add(new ReaderAccessItem
 					{
-						Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence],
+						Ordinal = _tableAnalysisResult.ColumnCache[columnName].Last(),
 						Instance = information.Instance,
-						PropertyInfo = property.PropertyInfo
+						PropertyInfo = property?.PropertyInfo
 					});
 				}
 
-				if (!columnFound)
-				{
-					var fullColumnName = $"none.{columnName}";
+				return;
+			}
 
-					if (_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
+			var columnFound = false;
+			foreach (var requestedTableName in information.RequestedTableNames)
+			{
+				var fullColumnName = $"{requestedTableName.TableName}.{columnName}";
+
+				if (!_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
+				{
+					continue;
+				}
+
+				columnFound = true;
+				if (!_tableAnalysisResult.AliasOccurrences.ContainsKey(requestedTableName.Alias))
+				{
+					if (requestedTableName.Alias == requestedTableName.TableName)
 					{
+						// Alias is an table name
 						information.ReaderAccessItems.Add(new ReaderAccessItem
 						{
 							Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
 							Instance = information.Instance,
-							PropertyInfo = property.PropertyInfo
+							PropertyInfo = property?.PropertyInfo
 						});
 					}
+
+					// Skip property if alias is unknown
+
+					continue;
+				}
+
+				var aliasOccurrence = _tableAnalysisResult.AliasOccurrences[requestedTableName.Alias];
+				if (aliasOccurrence >= _tableAnalysisResult.ColumnCache[fullColumnName].Count)
+				{
+					// Skip if correct column occurrence could not be found
+
+					continue;
+				}
+
+				information.ReaderAccessItems.Add(new ReaderAccessItem
+				{
+					Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence],
+					Instance = information.Instance,
+					PropertyInfo = property?.PropertyInfo
+				});
+			}
+
+			if (!columnFound)
+			{
+				var fullColumnName = $"none.{columnName}";
+
+				if (_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
+				{
+					information.ReaderAccessItems.Add(new ReaderAccessItem
+					{
+						Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
+						Instance = information.Instance,
+						PropertyInfo = property?.PropertyInfo
+					});
 				}
 			}
 		}
@@ -308,12 +341,13 @@ namespace Eshava.Storm
 					{
 						if (Convert.ToInt32(row["ColumnOrdinal"]) == columnOrdinal)
 						{
+							var isExpression = Convert.ToBoolean(row["IsExpression"]);
 							var tableName = row["BaseTableName"]?.ToString();
 							var columnName = row["ColumnName"]?.ToString();
 
 							if (tableName.IsNullOrEmpty())
 							{
-								tableName = "none";
+								tableName = isExpression ? "*" : "none";
 							}
 
 							if (columnName.IsNullOrEmpty())
@@ -361,18 +395,31 @@ namespace Eshava.Storm
 
 			foreach (var item in readerAccessItems)
 			{
-				var cellValue = default(object);
-				if (TypeHandlerMap.Map.ContainsKey(item.PropertyInfo.PropertyType))
-				{
-					cellValue = GetValueByTypeHandler(item.PropertyInfo.PropertyType, TypeHandlerMap.Map[item.PropertyInfo.PropertyType], item.Ordinal);
-				}
-				else
-				{
-					cellValue = _reader[item.Ordinal];
-				}
-
+				var cellValue = ExecuteReaderAccessItem(item.PropertyInfo.PropertyType, item.Ordinal);
 				item.PropertyInfo.SetValue(item.Instance, _dataTypeMapper.Map(item.PropertyInfo.PropertyType, cellValue));
 			}
+		}
+
+		private T ExecuteReaderAccessItem<T>(ReaderAccessItem readerAccessItem)
+		{
+			var type = typeof(T);
+			var cellValue = ExecuteReaderAccessItem(type, readerAccessItem.Ordinal);
+			if (cellValue == DBNull.Value)
+			{
+				return default;
+			}
+
+			return (T)cellValue;
+		}
+
+		private object ExecuteReaderAccessItem(Type type, int ordinal)
+		{
+			if (TypeHandlerMap.Map.ContainsKey(type))
+			{
+				return GetValueByTypeHandler(type, TypeHandlerMap.Map[type], ordinal);
+			}
+
+			return _reader[ordinal];
 		}
 
 		private object GetValueByTypeHandler(Type type, ITypeHandler typeHandler, int ordinal)

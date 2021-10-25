@@ -71,6 +71,9 @@ namespace Eshava.Storm.Extensions
 
 			var hasMatchesAliases = RegExStrings.TablesAliases.IsMatch(sql);
 			var hasMatchesAliasesWithAS = RegExStrings.TablesAliasesWithAs.IsMatch(sql);
+			var hasMatchesSelectJoinsAliases = RegExStrings.SelectJoinAliases.IsMatch(sql);
+			var hasMatchesSelectJoinsAliasesWithAS = RegExStrings.SelectJoinAliasesWithAs.IsMatch(sql);
+
 
 			if (!hasMatchesAliases && !hasMatchesAliasesWithAS)
 			{
@@ -80,19 +83,31 @@ namespace Eshava.Storm.Extensions
 			if (hasMatchesAliases)
 			{
 				var matches = RegExStrings.TablesAliases.Matches(sql);
-				ExecuteRegEx(matches, 4, tableAliases);
+				ExecuteTableRegEx(matches, 4, tableAliases);
 			}
 
 			if (hasMatchesAliasesWithAS)
 			{
 				var matches = RegExStrings.TablesAliasesWithAs.Matches(sql);
-				ExecuteRegEx(matches, 4, tableAliases);
+				ExecuteTableRegEx(matches, 4, tableAliases);
+			}
+
+			if (hasMatchesSelectJoinsAliases)
+			{
+				var matches = RegExStrings.SelectJoinAliases.Matches(sql);
+				ExecuteSelectJoinRegEx(matches, 2, tableAliases);
+			}
+
+			if (hasMatchesSelectJoinsAliasesWithAS)
+			{
+				var matches = RegExStrings.SelectJoinAliasesWithAs.Matches(sql);
+				ExecuteSelectJoinRegEx(matches, 3, tableAliases);
 			}
 
 			return tableAliases;
 		}
 
-		private static void ExecuteRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, string> tableAliases)
+		private static void ExecuteTableRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, string> tableAliases)
 		{
 			foreach (Match match in matches)
 			{
@@ -107,6 +122,24 @@ namespace Eshava.Storm.Extensions
 				if (!tableAliases.ContainsKey(alias))
 				{
 					tableAliases.Add(alias, tableName);
+				}
+			}
+		}
+
+		private static void ExecuteSelectJoinRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, string> tableAliases)
+		{
+			foreach (Match match in matches)
+			{
+				var alias = match.Groups[secondGroupIndex].Value.CleanTableName();
+
+				if (alias.IsNullOrEmpty())
+				{
+					continue;
+				}
+
+				if (!tableAliases.ContainsKey(alias))
+				{
+					tableAliases.Add(alias, "*");
 				}
 			}
 		}
