@@ -12,6 +12,8 @@ namespace Eshava.Storm.Engines
 {
 	internal class BulkCRUDCommandEngine : AbstractCRUDCommandEngine
 	{
+		public BulkCRUDCommandEngine() : base(null) { }
+
 		public async Task BulkInsertAsync<T>(BulkCommandDefinition<T> commandDefinition) where T : class
 		{
 			var type = CheckCommandConditions(commandDefinition.Entities, "insert");
