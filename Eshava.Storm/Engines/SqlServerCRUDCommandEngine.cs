@@ -9,5 +9,7 @@ namespace Eshava.Storm.Engines
 		) : base(objectGenerator)
 		{
 		}
+
+		protected override string GetLastInsertedPrimaryKeyQuery() => "SELECT SCOPE_IDENTITY();";
 	}
 }

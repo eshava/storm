@@ -143,5 +143,7 @@ namespace Eshava.Storm.Engines
 
 			return type;
 		}
+
+		protected override string GetLastInsertedPrimaryKeyQuery() => throw new NotImplementedException();
 	}
 }
