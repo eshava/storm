@@ -12,7 +12,7 @@ namespace Eshava.Storm.Models
 
 		public IList<ReaderAccessItem> ReaderAccessItems { get; set; }
 		public object Instance { get; set; }
-		public IEnumerable<(string Alias, string TableName)> RequestedTableNames { get; set; }
+		public IEnumerable<(string Alias, IList<string> TableNames)> RequestedTableNames { get; set; }
 		public string ColumnPrefix { get; set; }
 		public AbstractEntity Entity { get; set; }
 	}

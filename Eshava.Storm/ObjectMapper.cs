@@ -156,9 +156,10 @@ namespace Eshava.Storm
 			var columnFound = false;
 			foreach (var requestedTableName in information.RequestedTableNames)
 			{
-				var fullColumnName = $"{requestedTableName.TableName}.{columnName}";
+				var fullColumnNames = requestedTableName.TableNames.Select(tableName => $"{tableName}.{columnName}").ToList();
+				var fullColumnName = fullColumnNames.FirstOrDefault(f => _tableAnalysisResult.ColumnCache.ContainsKey(f));
 
-				if (!_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
+				if (fullColumnName.IsNullOrEmpty())
 				{
 					continue;
 				}
@@ -166,7 +167,7 @@ namespace Eshava.Storm
 				columnFound = true;
 				if (!_tableAnalysisResult.AliasOccurrences.ContainsKey(requestedTableName.Alias))
 				{
-					if (requestedTableName.Alias == requestedTableName.TableName)
+					if (requestedTableName.TableNames.Any(t => t == requestedTableName.Alias))
 					{
 						// Alias is an table name
 						information.ReaderAccessItems.Add(new ReaderAccessItem
@@ -214,14 +215,14 @@ namespace Eshava.Storm
 			}
 		}
 
-		private IEnumerable<(string Alias, string TableName)> GetTableNamesFromAlias(string tableAlias)
+		private IEnumerable<(string Alias, IList<string> TableNames)> GetTableNamesFromAlias(string tableAlias)
 		{
 			if (tableAlias.IsNullOrEmpty())
 			{
-				return Array.Empty<(string Alias, string TableName)>();
+				return Array.Empty<(string Alias, IList<string> TableNames)>();
 			}
 
-			var tableAliases = new List<(string Alias, string TableName)>();
+			var tableAliases = new List<(string Alias, IList<string> TableNames)>();
 			foreach (var alias in tableAlias.Split(','))
 			{
 				var tableAliasName = alias.Trim().CleanTableName();
@@ -230,9 +231,9 @@ namespace Eshava.Storm
 				{
 					tableAliases.Add((tableAliasName, _tableAnalysisResult.TableAliases[tableAliasName]));
 				}
-				else if (_tableAnalysisResult.TableAliases.Values.Any(t => t == tableAliasName))
+				else if (_tableAnalysisResult.TableAliases.Values.Any(t => t.Any(tableName => tableName == tableAliasName)))
 				{
-					tableAliases.Add((tableAliasName, tableAliasName));
+					tableAliases.Add((tableAliasName, new List<string> { tableAliasName }));
 				}
 			}
 
@@ -269,7 +270,7 @@ namespace Eshava.Storm
 			_tableAnalysisResult = tableAnalysisResult;
 		}
 
-		private Dictionary<string, int> CalculateTableAliasUsage(string sql, Dictionary<string, string> tableAliases)
+		private Dictionary<string, int> CalculateTableAliasUsage(string sql, Dictionary<string, IList<string>> tableAliases)
 		{
 			if (sql.IsNullOrEmpty())
 			{

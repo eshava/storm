@@ -60,9 +60,9 @@ namespace Eshava.Storm.Extensions
 				: list;
 		}
 
-		internal static Dictionary<string, string> GetTableAliases(this string sql)
+		internal static Dictionary<string, IList<string>> GetTableAliases(this string sql)
 		{
-			var tableAliases = new Dictionary<string, string>();
+			var tableAliases = new Dictionary<string, IList<string>>();
 
 			if (sql.IsNullOrEmpty())
 			{
@@ -80,6 +80,18 @@ namespace Eshava.Storm.Extensions
 				return tableAliases;
 			}
 
+			if (hasMatchesSelectJoinsAliases)
+			{
+				var matches = RegExStrings.SelectJoinAliasesInclusiveInnerSelect.Matches(sql);
+				ExecuteSelectJoinRegEx(matches, 5, 4, tableAliases);
+			}
+
+			if (hasMatchesSelectJoinsAliasesWithAS)
+			{
+				var matches = RegExStrings.SelectJoinAliasesWithAsInclusiveInnerSelect.Matches(sql);
+				ExecuteSelectJoinRegEx(matches, 6, 3, tableAliases);
+			}
+
 			if (hasMatchesAliases)
 			{
 				var matches = RegExStrings.TablesAliases.Matches(sql);
@@ -92,22 +104,32 @@ namespace Eshava.Storm.Extensions
 				ExecuteTableRegEx(matches, 4, tableAliases);
 			}
 
-			if (hasMatchesSelectJoinsAliases)
-			{
-				var matches = RegExStrings.SelectJoinAliases.Matches(sql);
-				ExecuteSelectJoinRegEx(matches, 2, tableAliases);
-			}
-
-			if (hasMatchesSelectJoinsAliasesWithAS)
-			{
-				var matches = RegExStrings.SelectJoinAliasesWithAs.Matches(sql);
-				ExecuteSelectJoinRegEx(matches, 3, tableAliases);
-			}
 
 			return tableAliases;
 		}
 
-		private static void ExecuteTableRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, string> tableAliases)
+		private static void ExecuteSelectJoinRegEx(MatchCollection matches, int queryAliasGroup, int secondGroupIndex, Dictionary<string, IList<string>> tableAliases)
+		{
+			foreach (Match match in matches)
+			{
+				var query = match.Groups[3].Value;
+				var queryMatches = RegExStrings.TablesAliases.Matches(query);
+				var innerTableAliases = new Dictionary<string, IList<string>>();
+				ExecuteTableRegEx(queryMatches, secondGroupIndex, innerTableAliases);
+
+				var alias = match.Groups[queryAliasGroup].Value.CleanTableName();
+				if (innerTableAliases.Count == 0)
+				{
+					tableAliases.Add(alias, new List<string> { "*" });
+				}
+				else
+				{
+					tableAliases.Add(alias, innerTableAliases.Values.SelectMany(v => v).ToList());
+				}
+			}
+		}
+
+		private static void ExecuteTableRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, IList<string>> tableAliases)
 		{
 			foreach (Match match in matches)
 			{
@@ -121,25 +143,7 @@ namespace Eshava.Storm.Extensions
 
 				if (!tableAliases.ContainsKey(alias))
 				{
-					tableAliases.Add(alias, tableName);
-				}
-			}
-		}
-
-		private static void ExecuteSelectJoinRegEx(MatchCollection matches, int secondGroupIndex, Dictionary<string, string> tableAliases)
-		{
-			foreach (Match match in matches)
-			{
-				var alias = match.Groups[secondGroupIndex].Value.CleanTableName();
-
-				if (alias.IsNullOrEmpty())
-				{
-					continue;
-				}
-
-				if (!tableAliases.ContainsKey(alias))
-				{
-					tableAliases.Add(alias, "*");
+					tableAliases.Add(alias, new List<string> { tableName });
 				}
 			}
 		}
