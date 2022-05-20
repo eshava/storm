@@ -667,7 +667,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 
 
 			// Act
-			var result = whereConditions.CalculateWhereConditions();
+			var result = whereConditions.Data.CalculateWhereConditions();
 
 			// Assert
 			result.QueryParameter.Should().HaveCount(2);
@@ -701,7 +701,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 
 
 			// Act
-			var result = whereConditions.CalculateWhereConditions();
+			var result = whereConditions.Data.CalculateWhereConditions();
 
 			// Assert
 			result.QueryParameter.Should().HaveCount(2);
@@ -735,7 +735,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 
 
 			// Act
-			var result = whereConditions.CalculateWhereConditions();
+			var result = whereConditions.Data.CalculateWhereConditions();
 
 			// Assert
 			result.QueryParameter.Should().HaveCount(1);
@@ -1054,7 +1054,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
 
 			// Act
-			var result = orderByConditions.CalculateSortConditions(data);
+			var result = orderByConditions.Data.CalculateSortConditions(data);
 
 			// Assert
 			result.Should().Be("a.Beta DESC, o.Psi ASC");
@@ -1100,7 +1100,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
 
 			// Act
-			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+			var result = orderByConditions.Data.AddSortConditionsToQuery(query, data);
 
 			// Assert
 			result.Should().Be($"{query}{Environment.NewLine}ORDER BY{Environment.NewLine}a.Beta DESC, o.Psi ASC");
@@ -1146,7 +1146,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
 
 			// Act
-			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+			var result = orderByConditions.Data.AddSortConditionsToQuery(query, data);
 
 			// Assert
 			result.Should().Be($"{query}{Environment.NewLine}ORDER BY{Environment.NewLine}a.Beta DESC, o.Psi ASC");
@@ -1192,7 +1192,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
 
 			// Act
-			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+			var result = orderByConditions.Data.AddSortConditionsToQuery(query, data);
 
 			// Assert
 			result.Should().Be($"{query}{Environment.NewLine}, {Environment.NewLine}a.Beta DESC, o.Psi ASC");
@@ -1238,7 +1238,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
 
 			// Act
-			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+			var result = orderByConditions.Data.AddSortConditionsToQuery(query, data);
 
 			// Assert
 			result.Should().Be($"{query}{Environment.NewLine}ORDER BY{Environment.NewLine}a.Beta DESC, o.Psi ASC");
@@ -1261,7 +1261,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var orderByConditions = sortingEngine.BuildSortConditions<Alpha>(queryParameters);
 
 			// Act
-			var result = orderByConditions.AddSortConditionsToQuery(query, data);
+			var result = orderByConditions.Data.AddSortConditionsToQuery(query, data);
 
 			// Assert
 			result.Should().Be(query);
