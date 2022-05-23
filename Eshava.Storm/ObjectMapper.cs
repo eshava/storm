@@ -283,8 +283,8 @@ namespace Eshava.Storm
 					 .ToLower();
 
 			var aliasOccurrences = tableAliases
-				.Select(pair => (Alias: pair.Key, Table: pair.Value, Index: sql.IndexOf(pair.Key + ".")))
-				.GroupBy(t => t.Table);
+				.Select(pair => (Alias: pair.Key, Tables: String.Join("", pair.Value.OrderBy(t => t)), Index: sql.IndexOf(pair.Key + ".")))
+				.GroupBy(t => t.Tables);
 
 			var resultAliasOccurrences = new Dictionary<string, int>();
 			foreach (var tableGroup in aliasOccurrences)
