@@ -11,5 +11,8 @@ namespace Eshava.Storm.Constants
 
 		public static readonly Regex SelectJoinAliases = new Regex(@"(\))\s+\[?(\b\S+\b)\]?\s+(\bON\b)\s+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 		public static readonly Regex SelectJoinAliasesWithAs = new Regex(@"(\))\s+(\bAS\b)\s+\[?(\b\S+\b)\]?\s+(\bON\b)\s+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+		public static readonly Regex SelectJoinAliasesInclusiveInnerSelect = new Regex(@"(\bJOIN\b\s*)(\(){1}([\s\S]+?)(\))\s+\[?(\b\S+\b)\]?\s+(\bON\b)\s+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+		public static readonly Regex SelectJoinAliasesWithAsInclusiveInnerSelect = new Regex(@"(\bJOIN\b\s*)(\(){1}([\s\S]+?)(\))\s+(\bAS\b)\s+\[?(\b\S+\b)\]?\s+(\bON\b)\s+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 	}
 }
