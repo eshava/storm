@@ -26,7 +26,9 @@ namespace Eshava.Storm
 
 		public T GetValue<T>(string columnName, string tableAlias = null)
 		{
-			if (ShouldMapClass<T>() || columnName.IsNullOrEmpty())
+			var valueType = typeof(T);
+
+			if ((ShouldMapClass<T>() && !TypeHandlerMap.Map.ContainsKey(valueType)) || columnName.IsNullOrEmpty())
 			{
 				return default;
 			}
@@ -49,7 +51,9 @@ namespace Eshava.Storm
 				return default;
 			}
 
-			return ExecuteReaderAccessItem<T>(readerAccessItems.First());
+			var cellValue = ExecuteReaderAccessItem<T>(readerAccessItems.First());
+
+			return (T)_dataTypeMapper.Map(valueType, cellValue);
 		}
 
 		public T Map<T>(string tableAlias = null)
