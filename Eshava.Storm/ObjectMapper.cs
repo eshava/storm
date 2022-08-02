@@ -51,9 +51,7 @@ namespace Eshava.Storm
 				return default;
 			}
 
-			var cellValue = ExecuteReaderAccessItem<T>(readerAccessItems.First());
-
-			return (T)_dataTypeMapper.Map(valueType, cellValue);
+			return ExecuteReaderAccessItem<T>(readerAccessItems.First());
 		}
 
 		public T Map<T>(string tableAlias = null)
@@ -414,7 +412,7 @@ namespace Eshava.Storm
 				return default;
 			}
 
-			return (T)cellValue;
+			return (T)_dataTypeMapper.Map(type, cellValue);
 		}
 
 		private object ExecuteReaderAccessItem(Type type, int ordinal)
