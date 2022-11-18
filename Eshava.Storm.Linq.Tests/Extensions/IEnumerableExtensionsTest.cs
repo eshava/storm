@@ -272,9 +272,11 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		public void CalculateWhereConditionsGreaterOrEqualTest()
 		{
 			// Arrange
+			var betaId = 7;
+
 			var queryConditions = new List<Expression<Func<Alpha, bool>>>
 			{
-				alpha => alpha.Beta >= 7
+				alpha => alpha.Beta >= betaId
 			};
 
 			// Act
@@ -673,7 +675,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			result.QueryParameter.Should().HaveCount(2);
 			result.QueryParameter.Keys.First().Should().Be("p0");
 			result.QueryParameter.Keys.Last().Should().Be("p1");
-			result.QueryParameter.Values.First().Should().Be(Color.White);
+			result.QueryParameter.Values.First().Should().Be((int)Color.White);
 			result.QueryParameter.Values.Last().Should().Be(0);
 
 			result.Sql.Should().Be($"((CASE WHEN {nameof(Alpha.Delta)} = @p0 THEN 0 WHEN {nameof(Alpha.Delta)} > @p0 THEN 1 ELSE -1 END) > @p1){Environment.NewLine}");
@@ -707,7 +709,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			result.QueryParameter.Should().HaveCount(2);
 			result.QueryParameter.Keys.First().Should().Be("p0");
 			result.QueryParameter.Keys.Last().Should().Be("p1");
-			result.QueryParameter.Values.First().Should().Be(Color.White);
+			result.QueryParameter.Values.First().Should().Be((int)Color.White);
 			result.QueryParameter.Values.Last().Should().Be(0);
 
 			result.Sql.Should().Be($"((CASE WHEN {nameof(Alpha.Delta)} = @p0 THEN 0 WHEN {nameof(Alpha.Delta)} > @p0 THEN 1 ELSE -1 END) <= @p1){Environment.NewLine}");

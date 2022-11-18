@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Eshava.Core.Linq" Version="1.0.5" />
+    <PackageReference Include="Eshava.Core.Linq" Version="1.0.8" />
   </ItemGroup>
 
   <ItemGroup>
