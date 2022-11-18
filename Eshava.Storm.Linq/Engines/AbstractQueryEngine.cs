@@ -189,7 +189,18 @@ namespace Eshava.Storm.Linq.Engines
 				{
 					var parameterName = parent.Substring(1);
 					var value = data.QueryParameter[parameterName];
-					data.QueryParameter[parameterName] = value.GetType().GetProperty(property).GetValue(value);
+
+					var valueProperty = value.GetType().GetProperty(property);
+					var valueField = value.GetType().GetField(property);
+
+					if (valueProperty != null)
+					{
+						data.QueryParameter[parameterName] = valueProperty.GetValue(value);
+					}
+					else if (valueField != null)
+					{
+						data.QueryParameter[parameterName] = valueField.GetValue(value);
+					}					
 				}
 
 				return parent;
