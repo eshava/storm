@@ -5,6 +5,7 @@ using System.Data.SqlTypes;
 using System.Linq;
 using System.Threading.Tasks;
 using Eshava.Storm.Extensions;
+using Eshava.Storm.Interfaces;
 using Eshava.Storm.Models;
 using Microsoft.Data.SqlClient;
 
@@ -12,6 +13,8 @@ namespace Eshava.Storm.Engines
 {
 	internal class BulkCRUDCommandEngine : AbstractCRUDCommandEngine
 	{
+		private static Type _ibulkInsertTypeHandler = typeof(IBulkInsertTypeHandler);
+
 		public BulkCRUDCommandEngine() : base(null) { }
 
 		public async Task BulkInsertAsync<T>(BulkCommandDefinition<T> commandDefinition) where T : class
@@ -116,7 +119,13 @@ namespace Eshava.Storm.Engines
 
 				if (property.TypeHandler == default || !property.TypeHandler.ReadAsByteArray)
 				{
-					dataTable.Columns.Add(new DataColumn(columnName, property.PropertyInfo.PropertyType.GetDataType()));
+					var propertyType = property.PropertyInfo.PropertyType.GetDataType();
+					if (property.TypeHandler?.GetType().ImplementsInterface(_ibulkInsertTypeHandler) ?? false)
+					{
+						propertyType = ((IBulkInsertTypeHandler)property.TypeHandler).GetDateType();
+					}
+
+					dataTable.Columns.Add(new DataColumn(columnName, propertyType));
 
 					continue;
 				}
