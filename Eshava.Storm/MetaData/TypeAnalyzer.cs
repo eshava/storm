@@ -156,8 +156,8 @@ namespace Eshava.Storm.MetaData
 
 					if (property == default || !property.IsOwnsOne)
 					{
-						propertyInfo.PropertyType.LookupDbType("", false, out var _);
-						if (Storm.Models.TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType))
+						propertyInfo.PropertyType.GetDataType().LookupDbType("", false, out var _);
+						if (Storm.Models.TypeHandlerMap.Map.ContainsKey(propertyInfo.PropertyType.GetDataType()))
 						{
 							property = entity.GetProperty(propertyInfo.Name);
 							if (property == default)
