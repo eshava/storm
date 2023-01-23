@@ -26,7 +26,7 @@ namespace Eshava.Storm
 
 		public T GetValue<T>(string columnName, string tableAlias = null)
 		{
-			var valueType = typeof(T);
+			var valueType = typeof(T).GetDataType();
 
 			if ((ShouldMapClass<T>() && !TypeHandlerMap.Map.ContainsKey(valueType)) || columnName.IsNullOrEmpty())
 			{
@@ -417,6 +417,8 @@ namespace Eshava.Storm
 
 		private object ExecuteReaderAccessItem(Type type, int ordinal)
 		{
+			type = type.GetDataType();
+
 			if (TypeHandlerMap.Map.ContainsKey(type))
 			{
 				return GetValueByTypeHandler(type, TypeHandlerMap.Map[type], ordinal);

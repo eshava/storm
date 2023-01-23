@@ -21,7 +21,7 @@ namespace Eshava.Storm.Extensions
 		{
 			DbType dbType;
 			handler = null;
-			var nullUnderlyingType = Nullable.GetUnderlyingType(type);
+			var nullUnderlyingType = type.GetDataType();
 			if (nullUnderlyingType != null)
 			{
 				type = nullUnderlyingType;

@@ -472,7 +472,7 @@ namespace Eshava.Storm.Engines
 					continue;
 				}
 
-				if (TypeHandlerMap.Map.ContainsKey(property.Type))
+				if (TypeHandlerMap.Map.ContainsKey(property.Type.GetDataType()))
 				{
 					if (request.PatchProperties != default)
 					{
@@ -498,7 +498,7 @@ namespace Eshava.Storm.Engines
 							Prefix = request.NamePrefix,
 							PropertyInfo = property.PropertyInfo,
 							Entity = request.Entity,
-							TypeHandler = TypeHandlerMap.Map[property.Type],
+							TypeHandler = TypeHandlerMap.Map[property.Type.GetDataType()],
 							ColumnName = property.ColumnName
 						});
 
