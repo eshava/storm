@@ -88,7 +88,17 @@ namespace Eshava.Storm
 
 		private object CreateEmptyInstance(Type type)
 		{
-			var entity = EntityCache.GetEntity(type) ?? TypeAnalyzer.AnalyzeType(type);
+			var entity = EntityCache.GetEntity(type);
+			if (entity == null)
+			{
+				if (Settings.RestrictToRegisteredModels)
+				{
+					throw new ArgumentException($"The given type is not analyzed. Engine is restricted to analyzed type. Use {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.AddType)}<>().");
+				}
+
+				entity = TypeAnalyzer.AnalyzeType(type);
+			}
+
 			var instance = Activator.CreateInstance(type);
 
 			foreach (var property in entity.GetProperties())
@@ -104,7 +114,16 @@ namespace Eshava.Storm
 
 		private void PreProcessProperties(PreProcessPropertyInformation information)
 		{
-			information.Entity = information.Entity ?? EntityCache.GetEntity(information.Instance.GetType()) ?? TypeAnalyzer.AnalyzeType(information.Instance.GetType());
+			information.Entity ??= EntityCache.GetEntity(information.Instance.GetType());
+			if (information.Entity == null)
+			{
+				if (Settings.RestrictToRegisteredModels)
+				{
+					throw new ArgumentException($"The given type is not analyzed. Engine is restricted to analyzed type. Use {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.AddType)}<>().");
+				}
+
+				information.Entity = TypeAnalyzer.AnalyzeType(information.Instance.GetType());
+			}
 
 			foreach (var property in information.Entity.GetProperties())
 			{
@@ -126,7 +145,6 @@ namespace Eshava.Storm
 				CollectOrdinal(property, information, columnName);
 			}
 		}
-
 
 		private void CollectOrdinal(MetaData.Models.Property property, PreProcessPropertyInformation information, string columnName)
 		{

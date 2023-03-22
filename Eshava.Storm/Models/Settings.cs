@@ -20,6 +20,8 @@ namespace Eshava.Storm
 			CommandTimeout = null;
 			IgnoreDuplicatedColumns = false;
 			DefaultKeyColumnValueGeneration = DatabaseGeneratedOption.None;
+			EnableDateTimeHighAccuracy = false;
+			RestrictToRegisteredModels = false;
 		}
 
 		/// <summary>
@@ -43,5 +45,10 @@ namespace Eshava.Storm
 		/// Date and time data. Date value with an accuracy of 100 nanoseconds.
 		/// </summary>
 		public static bool EnableDateTimeHighAccuracy { get; set; }
+
+		/// <summary>
+		/// All models must be explicitly registered by a DbConfiguration or by TypeAnalyzer.Register<>() to be used in the mapper.
+		/// </summary>
+		public static bool RestrictToRegisteredModels { get; set; }
 	}
 }
