@@ -20,6 +20,19 @@ namespace Eshava.Storm.MetaData
 			AnalyzeType(typeof(TEntity));
 		}
 
+		public static void AddType<TEntity>() where TEntity : class
+		{
+			var type = typeof(TEntity);
+			var entity = EntityCache.GetEntity(type);
+
+			if (entity != default)
+			{
+				throw new ArgumentException("The given type is already analyzed.");
+			}
+
+			AnalyzeType(type);
+		}
+
 		/// <summary>
 		/// Determine table name based on class attribute or name convention, without using the analysis cache
 		/// </summary>
@@ -37,6 +50,11 @@ namespace Eshava.Storm.MetaData
 
 			if (entity == default)
 			{
+				if (Settings.RestrictToRegisteredModels)
+				{
+					throw new ArgumentException($"The given type is not analyzed. Engine is restricted to analyzed type. Use {nameof(TypeAnalyzer)}.{nameof(TypeAnalyzer.AddType)}<>().");
+				}
+
 				entity = AnalyzeType(type);
 			}
 
