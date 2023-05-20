@@ -106,22 +106,39 @@ namespace Eshava.Storm.Linq.Engines
 
 		protected string MapPropertyPath(QuerySettings data, string propertyName)
 		{
-			if (propertyName.IsNullOrEmpty() || (!propertyName.StartsWith(".") && !data.PropertyMappings.ContainsKey(propertyName)))
+			if (propertyName.IsNullOrEmpty())
 			{
 				return propertyName;
 			}
 
-			if (!data.PropertyMappings.ContainsKey(propertyName))
-			{
-				if (data.PropertyMappings.ContainsKey("."))
-				{
-					return data.PropertyMappings["."] + propertyName;
-				}
+			var propertyNameModified = propertyName.StartsWith(".") || !propertyName.Contains(".")
+				? propertyName
+				: propertyName.Substring(propertyName.IndexOf("."))
+				;
 
-				return propertyName.Substring(1);
+			if (!propertyName.StartsWith(".") 
+				&& !data.PropertyMappings.ContainsKey(propertyName) 
+				&& !data.PropertyMappings.ContainsKey(propertyNameModified))
+			{
+				return propertyName;
 			}
 
-			return data.PropertyMappings[propertyName];
+			if (data.PropertyMappings.ContainsKey(propertyName))
+			{
+				return data.PropertyMappings[propertyName];
+			}
+
+			if (data.PropertyMappings.ContainsKey(propertyNameModified))
+			{
+				return data.PropertyMappings[propertyNameModified];
+			}
+
+			if (data.PropertyMappings.ContainsKey("."))
+			{
+				return data.PropertyMappings["."] + propertyName;
+			}
+
+			return propertyName.Substring(1);
 		}
 
 		private string ProcessBinaryExpression(BinaryExpression binaryExpression, WhereQueryData data)
@@ -200,7 +217,7 @@ namespace Eshava.Storm.Linq.Engines
 					else if (valueField != null)
 					{
 						data.QueryParameter[parameterName] = valueField.GetValue(value);
-					}					
+					}
 				}
 
 				return parent;
@@ -358,7 +375,7 @@ namespace Eshava.Storm.Linq.Engines
 				queryParts.Add(lambdaAsQuery.Replace(PARAMETER_PLACEHOLDER, "@" + parameterName));
 			}
 
-			return $"({String.Join(" OR ", queryParts) })";
+			return $"({String.Join(" OR ", queryParts)})";
 		}
 
 		private void ManipulateParameterValue(WhereQueryData data, string parameterName, Func<object, string> manipulate)
