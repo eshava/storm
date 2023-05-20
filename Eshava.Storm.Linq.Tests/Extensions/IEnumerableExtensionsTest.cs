@@ -1063,6 +1063,47 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 		}
 
 		[TestMethod]
+		public void CalculateSortConditionsMapToAnotherAliasTest()
+		{
+			// Arrange
+			var sortingEngine = new SortingQueryEngine();
+
+			var queryParameters = new QueryParameters
+			{
+				SortingQueryProperties = new List<SortingQueryProperty>
+				{
+					new SortingQueryProperty
+					{
+						PropertyName = nameof(Alpha.Beta),
+						SortOrder = SortOrder.Descending
+					},
+					new SortingQueryProperty
+					{
+						PropertyName = nameof(Alpha.Gamma),
+						SortOrder = SortOrder.Ascending
+					}
+				}
+			};
+
+			var data = new WhereQuerySettings
+			{
+				PropertyMappings = new Dictionary<string, string>
+				{
+					{ ".", "a" },
+					{ ".Gamma", "o.Psi" }
+				}
+			};
+
+			var orderByConditions = sortingEngine.BuildSortConditions<Alpha>(queryParameters, null);
+
+			// Act
+			var result = orderByConditions.Data.CalculateSortConditions(data);
+
+			// Assert
+			result.Should().Be("a.Beta DESC, o.Psi ASC");
+		}
+
+		[TestMethod]
 		public void AddSortConditionsToQueryNoOrderByTest()
 		{
 			// Arrange
@@ -1095,6 +1136,55 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 				PropertyMappings = new Dictionary<string, string>
 				{
 					{ ".", "a" },
+					{ ".Omega.Psi", "o.Psi" }
+				}
+			};
+
+			var orderByConditions = sortingEngine.BuildSortConditions(queryParameters, mappings);
+
+			// Act
+			var result = orderByConditions.Data.AddSortConditionsToQuery(query, data);
+
+			// Assert
+			result.Should().Be($"{query}{Environment.NewLine}ORDER BY{Environment.NewLine}a.Beta DESC, o.Psi ASC");
+		}
+
+		[TestMethod]
+		public void AddSortConditionsToQueryNoOrderByWithPropertyTypeAndPropertyMappingTest()
+		{
+			// Arrange
+			var query = "SELECT * FROM Alpha a";
+			var sortingEngine = new SortingQueryEngine();
+			var mappings = new Dictionary<string, List<Expression<Func<Alpha, object>>>>
+			{
+				{ nameof(Omega.Psi),  new List<Expression<Func<Alpha, object>>> { a => a.Omega.Psi } }
+			};
+
+			var queryParameters = new QueryParameters
+			{
+				SortingQueryProperties = new List<SortingQueryProperty>
+				{
+					new SortingQueryProperty
+					{
+						PropertyName = nameof(Alpha.Beta),
+						SortOrder = SortOrder.Descending
+					},
+					new SortingQueryProperty
+					{
+						PropertyName = nameof(Omega.Psi),
+						SortOrder = SortOrder.Ascending
+					}
+				}
+			};
+
+			var data = new WhereQuerySettings
+			{
+				PropertyTypeMappings = new Dictionary<Type, string>
+				{
+					{ typeof(Alpha), "a" }
+				},
+				PropertyMappings = new Dictionary<string, string>
+				{
 					{ ".Omega.Psi", "o.Psi" }
 				}
 			};
