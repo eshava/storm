@@ -18,6 +18,8 @@ namespace Eshava.Storm.Linq.Engines
 		private const string METHOD_ENDSWITH = "endswith";
 		private const string METHOD_COMPARETO = "compareto";
 		private const string METHOD_CONTAINEDIN = "containedin";
+		private const string METHOD_TOUPPER = "toupper";
+		private const string METHOD_TOLOWER = "tolower";
 
 		protected const string SQL_AND = "AND";
 
@@ -116,8 +118,8 @@ namespace Eshava.Storm.Linq.Engines
 				: propertyName.Substring(propertyName.IndexOf("."))
 				;
 
-			if (!propertyName.StartsWith(".") 
-				&& !data.PropertyMappings.ContainsKey(propertyName) 
+			if (!propertyName.StartsWith(".")
+				&& !data.PropertyMappings.ContainsKey(propertyName)
 				&& !data.PropertyMappings.ContainsKey(propertyNameModified))
 			{
 				return propertyName;
@@ -306,6 +308,14 @@ namespace Eshava.Storm.Linq.Engines
 				rawProperty = ProcessExpression(methodCallExpression.Arguments.First(), data, methodCallExpression.NodeType);
 				value = ProcessExpression(methodCallExpression.Arguments.Last(), data, methodCallExpression.NodeType);
 			}
+			else if (method == METHOD_TOUPPER)
+			{
+				return ProcessMethodCallExpressionToUpper(methodCallExpression, data);
+			}
+			else if (method == METHOD_TOLOWER)
+			{
+				return ProcessMethodCallExpressionToLower(methodCallExpression, data);
+			}
 			else
 			{
 				rawProperty = ProcessExpression(methodCallExpression.Object, data, methodCallExpression.NodeType);
@@ -376,6 +386,20 @@ namespace Eshava.Storm.Linq.Engines
 			}
 
 			return $"({String.Join(" OR ", queryParts)})";
+		}
+
+		private string ProcessMethodCallExpressionToUpper(MethodCallExpression methodCallExpression, WhereQueryData data)
+		{
+			// Ignore to upper call
+
+			return ProcessExpression(methodCallExpression.Object, data, methodCallExpression.NodeType);
+		}
+
+		private string ProcessMethodCallExpressionToLower(MethodCallExpression methodCallExpression, WhereQueryData data)
+		{
+			// Ignore to lower call
+
+			return ProcessExpression(methodCallExpression.Object, data, methodCallExpression.NodeType);
 		}
 
 		private void ManipulateParameterValue(WhereQueryData data, string parameterName, Func<object, string> manipulate)

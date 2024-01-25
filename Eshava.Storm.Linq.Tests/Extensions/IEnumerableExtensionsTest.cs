@@ -410,6 +410,26 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			result.Sql.Should().Be("NOT(Gamma LIKE @p0)" + Environment.NewLine);
 		}
 
+			[TestMethod]
+		public void CalculateWhereConditionsNotStartsWithAndToUpperTest()
+		{
+			// Arrange
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => !alpha.Gamma.ToUpper().StartsWith("One")
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("One%");
+
+			result.Sql.Should().Be("NOT(Gamma LIKE @p0)" + Environment.NewLine);
+		}
+
 		[TestMethod]
 		public void CalculateWhereConditionsEndsWithTest()
 		{
@@ -437,6 +457,26 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			var queryConditions = new List<Expression<Func<Alpha, bool>>>
 			{
 				alpha => !alpha.Gamma.EndsWith("One")
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0");
+			result.QueryParameter.Values.First().Should().Be("%One");
+
+			result.Sql.Should().Be("NOT(Gamma LIKE @p0)" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsNotEndsWithAndToLowerTest()
+		{
+			// Arrange
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => !alpha.Gamma.ToLower().EndsWith("One")
 			};
 
 			// Act
@@ -490,6 +530,27 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			result.QueryParameter.Values.First().Should().BeOfType(typeof(List<Color>));
 
 			result.Sql.Should().Be("Delta IN @p0Array" + Environment.NewLine);
+		}
+
+		[TestMethod]
+		public void CalculateWhereConditionsContainedInArrayStringToLowerTest()
+		{
+			// Arrange
+			var values = new[] { "alpha", "beta" };
+			var queryConditions = new List<Expression<Func<Alpha, bool>>>
+			{
+				alpha => values.Contains(alpha.Gamma.ToLower())
+			};
+
+			// Act
+			var result = queryConditions.CalculateWhereConditions();
+
+			// Assert
+			result.QueryParameter.Should().HaveCount(1);
+			result.QueryParameter.Keys.First().Should().Be("p0Array");
+			result.QueryParameter.Values.First().Should().BeOfType(typeof(string[]));
+
+			result.Sql.Should().Be("Gamma IN @p0Array" + Environment.NewLine);
 		}
 
 		[TestMethod]
@@ -746,7 +807,7 @@ namespace Eshava.Storm.Linq.Tests.Extensions
 			(result.QueryParameter.Values.First() as List<string>)[0].Should().Be("Black");
 			(result.QueryParameter.Values.First() as List<string>)[1].Should().Be("White");
 
-			result.Sql.Should().Be($"Gamma IN @p0Array{Environment.NewLine}");
+			result.Sql.Should().Be($"((Gamma IS NOT NULL) AND Gamma IN @p0Array){Environment.NewLine}");
 		}
 
 		[TestMethod]
