@@ -36,7 +36,7 @@ namespace Eshava.Storm
 			CalculateColumnCache();
 
 			var requestedTableNames = GetTableNamesFromAlias(tableAlias);
-			if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias))
+			if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias.ToLower()))
 			{
 				return default;
 			}
@@ -67,7 +67,7 @@ namespace Eshava.Storm
 
 				var resultObject = Activator.CreateInstance<T>();
 				var requestedTableNames = GetTableNamesFromAlias(tableAlias);
-				if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias))
+				if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias.ToLower()))
 				{
 					return resultObject;
 				}
