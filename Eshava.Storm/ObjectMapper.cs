@@ -36,6 +36,11 @@ namespace Eshava.Storm
 			CalculateColumnCache();
 
 			var requestedTableNames = GetTableNamesFromAlias(tableAlias);
+			if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias))
+			{
+				return default;
+			}
+
 			var readerAccessItems = new List<ReaderAccessItem>();
 			var information = new PreProcessPropertyInformation
 			{
@@ -62,6 +67,11 @@ namespace Eshava.Storm
 
 				var resultObject = Activator.CreateInstance<T>();
 				var requestedTableNames = GetTableNamesFromAlias(tableAlias);
+				if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias))
+				{
+					return resultObject;
+				}
+
 				var readerAccessItems = new List<ReaderAccessItem>();
 
 				PreProcessProperties(new PreProcessPropertyInformation
