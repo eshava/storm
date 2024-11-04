@@ -35,8 +35,8 @@ namespace Eshava.Storm
 
 			CalculateColumnCache();
 
-			var requestedTableNames = GetTableNamesFromAlias(tableAlias);
-			if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias.ToLower()))
+			(var hasInvalidAlias, var requestedTableNames) = GetTableNamesFromAlias(tableAlias);
+			if (hasInvalidAlias)
 			{
 				return default;
 			}
@@ -66,8 +66,8 @@ namespace Eshava.Storm
 				CalculateColumnCache();
 
 				var resultObject = Activator.CreateInstance<T>();
-				var requestedTableNames = GetTableNamesFromAlias(tableAlias);
-				if (!tableAlias.IsNullOrEmpty() && requestedTableNames.All(t => t.Alias != tableAlias.ToLower()))
+				(var hasInvalidAlias, var requestedTableNames) = GetTableNamesFromAlias(tableAlias);
+				if (hasInvalidAlias)
 				{
 					return resultObject;
 				}
@@ -245,11 +245,11 @@ namespace Eshava.Storm
 			}
 		}
 
-		private IEnumerable<(string Alias, IList<string> TableNames)> GetTableNamesFromAlias(string tableAlias)
+		private (bool HasInvalidAlias, IEnumerable<(string Alias, IList<string> TableNames)> Aliases) GetTableNamesFromAlias(string tableAlias)
 		{
 			if (tableAlias.IsNullOrEmpty())
 			{
-				return Array.Empty<(string Alias, IList<string> TableNames)>();
+				return (false, Array.Empty<(string Alias, IList<string> TableNames)>());
 			}
 
 			var tableAliases = new List<(string Alias, IList<string> TableNames)>();
@@ -267,7 +267,7 @@ namespace Eshava.Storm
 				}
 			}
 
-			return tableAliases;
+			return (tableAliases.Count == 0, tableAliases);
 		}
 
 		private void SetTableAnalysisResult(string sql)
