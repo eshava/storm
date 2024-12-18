@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30309.148
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eshava.Storm", "Eshava.Storm\Eshava.Storm.csproj", "{21ADB094-508B-4CD5-BAB6-387FF02D80D8}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eshava.Storm.Linq", "Eshava.Storm.Linq\Eshava.Storm.Linq.csproj", "{5C15BB24-B439-4227-BF9A-DB04E8EC031D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eshava.Storm.Linq.Tests", "Eshava.Storm.Linq.Tests\Eshava.Storm.Linq.Tests.csproj", "{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eshava.Storm.Tests", "Eshava.Storm.Tests\Eshava.Storm.Tests.csproj", "{C33ABB1C-C949-46E7-89B6-56B7882390F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1CB3BE01-38B5-4835-8EB0-635EED1B9FFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C33ABB1C-C949-46E7-89B6-56B7882390F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C33ABB1C-C949-46E7-89B6-56B7882390F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C33ABB1C-C949-46E7-89B6-56B7882390F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C33ABB1C-C949-46E7-89B6-56B7882390F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
