@@ -70,12 +70,11 @@ namespace Eshava.Storm.Extensions
 			}
 
 			var hasMatchesAliases = RegExStrings.TablesAliases.IsMatch(sql);
-			var hasMatchesAliasesWithAS = RegExStrings.TablesAliasesWithAs.IsMatch(sql);
 			var hasMatchesSelectJoinsAliases = RegExStrings.SelectJoinAliases.IsMatch(sql);
 			var hasMatchesSelectJoinsAliasesWithAS = RegExStrings.SelectJoinAliasesWithAs.IsMatch(sql);
 
 
-			if (!hasMatchesAliases && !hasMatchesAliasesWithAS)
+			if (!hasMatchesAliases)
 			{
 				return tableAliases;
 			}
@@ -97,13 +96,6 @@ namespace Eshava.Storm.Extensions
 				var matches = RegExStrings.TablesAliases.Matches(sql);
 				ExecuteTableRegEx(matches, 4, tableAliases);
 			}
-
-			if (hasMatchesAliasesWithAS)
-			{
-				var matches = RegExStrings.TablesAliasesWithAs.Matches(sql);
-				ExecuteTableRegEx(matches, 4, tableAliases);
-			}
-
 
 			return tableAliases;
 		}
@@ -133,8 +125,8 @@ namespace Eshava.Storm.Extensions
 		{
 			foreach (Match match in matches)
 			{
-				var tableName = match.Groups[2].Value.CleanTableName();
-				var alias = match.Groups[secondGroupIndex].Value.CleanTableName();
+				var tableName = match.Groups["table"].Value.CleanTableName();
+				var alias = match.Groups["tablealias"].Value.CleanTableName();
 
 				if (alias.IsNullOrEmpty())
 				{
