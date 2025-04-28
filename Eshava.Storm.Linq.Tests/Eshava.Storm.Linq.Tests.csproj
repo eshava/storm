@@ -2,7 +2,7 @@
 
   <PropertyGroup>
 		<LangVersion>latest</LangVersion>
-    <TargetFramework>netcoreapp6</TargetFramework>
+    <TargetFramework>netcoreapp8</TargetFramework>
 		<Authors>Eshava</Authors>
   </PropertyGroup>
 

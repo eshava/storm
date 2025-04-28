@@ -1,4 +1,7 @@
-﻿namespace Eshava.Storm.Interfaces
+﻿using System;
+using System.Data;
+
+namespace Eshava.Storm.Interfaces
 {
 	public interface IObjectMapper
 	{
@@ -18,5 +21,8 @@
 		/// <param name="tableAlias">Single alias</param>
 		/// <returns></returns>
 		T GetValue<T>(string columnName, string tableAlias = null);
+
+		Type GetDataType(string columnName, string tableAlias = null);
+		DataTable GetSchemaTable();
 	}
 }

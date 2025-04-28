@@ -16,12 +16,100 @@ namespace Eshava.Storm
 		private readonly DbDataReader _reader;
 		private readonly DataTypeMapper _dataTypeMapper;
 		private TableAnalysisResult _tableAnalysisResult;
+		private DataTable _schemaTable = null;
 
 		public ObjectMapper(DbDataReader reader, string sql)
 		{
 			_dataTypeMapper = new DataTypeMapper();
 			_reader = reader;
 			SetTableAnalysisResult(sql);
+		}
+
+		public DataTable GetSchemaTable()
+		{
+			CalculateColumnCache();
+
+			return _schemaTable;
+		}
+
+		public Type GetDataType(string columnName, string tableAlias = null)
+		{
+			CalculateColumnCache();
+
+			(var hasInvalidAlias, var requestedTableNames) = GetTableNamesFromAlias(tableAlias);
+			if (hasInvalidAlias)
+			{
+				return default;
+			}
+
+			columnName = columnName?.ToLower() ?? "";
+
+			if (!_tableAnalysisResult.ResultTableNames.Any() || !requestedTableNames.Any())
+			{
+				// No result analyse result available
+				if (!_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
+				{
+					var columnNew = _tableAnalysisResult.ColumnCache.Keys.FirstOrDefault(c => c.EndsWith("." + columnName));
+					if (!columnNew.IsNullOrEmpty())
+					{
+						columnName = columnNew;
+					}
+				}
+
+				if (_tableAnalysisResult.ColumnCache.ContainsKey(columnName))
+				{
+					return _tableAnalysisResult.ColumnCache[columnName].Last().DataType;
+				}
+
+				return default;
+			}
+
+			var columnFound = false;
+			foreach (var requestedTableName in requestedTableNames)
+			{
+				var fullColumnNames = requestedTableName.TableNames.Select(tableName => $"{tableName}.{columnName}").ToList();
+				var fullColumnName = fullColumnNames.FirstOrDefault(f => _tableAnalysisResult.ColumnCache.ContainsKey(f));
+
+				if (fullColumnName.IsNullOrEmpty())
+				{
+					continue;
+				}
+
+				columnFound = true;
+				if (!_tableAnalysisResult.AliasOccurrences.ContainsKey(requestedTableName.Alias))
+				{
+					if (requestedTableName.TableNames.Any(t => t == requestedTableName.Alias))
+					{
+						return _tableAnalysisResult.ColumnCache[fullColumnName].Last().DataType;
+					}
+
+					// Skip property if alias is unknown
+
+					continue;
+				}
+
+				var aliasOccurrence = _tableAnalysisResult.AliasOccurrences[requestedTableName.Alias];
+				if (aliasOccurrence >= _tableAnalysisResult.ColumnCache[fullColumnName].Count)
+				{
+					// Skip if correct column occurrence could not be found
+
+					continue;
+				}
+
+				return _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence].DataType;
+			}
+
+			if (!columnFound)
+			{
+				var fullColumnName = $"none.{columnName}";
+
+				if (_tableAnalysisResult.ColumnCache.ContainsKey(fullColumnName))
+				{
+					return _tableAnalysisResult.ColumnCache[fullColumnName].Last().DataType;
+				}
+			}
+
+			return default;
 		}
 
 		public T GetValue<T>(string columnName, string tableAlias = null)
@@ -174,7 +262,7 @@ namespace Eshava.Storm
 				{
 					information.ReaderAccessItems.Add(new ReaderAccessItem
 					{
-						Ordinal = _tableAnalysisResult.ColumnCache[columnName].Last(),
+						Ordinal = _tableAnalysisResult.ColumnCache[columnName].Last().Ordinal,
 						Instance = information.Instance,
 						PropertyInfo = property?.PropertyInfo
 					});
@@ -202,7 +290,7 @@ namespace Eshava.Storm
 						// Alias is an table name
 						information.ReaderAccessItems.Add(new ReaderAccessItem
 						{
-							Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
+							Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last().Ordinal,
 							Instance = information.Instance,
 							PropertyInfo = property?.PropertyInfo
 						});
@@ -223,7 +311,7 @@ namespace Eshava.Storm
 
 				information.ReaderAccessItems.Add(new ReaderAccessItem
 				{
-					Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence],
+					Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName][aliasOccurrence].Ordinal,
 					Instance = information.Instance,
 					PropertyInfo = property?.PropertyInfo
 				});
@@ -237,7 +325,7 @@ namespace Eshava.Storm
 				{
 					information.ReaderAccessItems.Add(new ReaderAccessItem
 					{
-						Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last(),
+						Ordinal = _tableAnalysisResult.ColumnCache[fullColumnName].Last().Ordinal,
 						Instance = information.Instance,
 						PropertyInfo = property?.PropertyInfo
 					});
@@ -336,16 +424,16 @@ namespace Eshava.Storm
 				return;
 			}
 
-			var schemaTable = default(DataTable);
 			if (_reader.CanGetColumnSchema())
 			{
-				schemaTable = _reader.GetSchemaTable();
+				_schemaTable = _reader.GetSchemaTable();
 			}
 
-			var columnCache = new Dictionary<string, IList<int>>();
+			var columnCache = new Dictionary<string, IList<(int Ordinal, Type DataType)>>();
+			var columnDataTypeCache = new Dictionary<string, IList<Type>>();
 			var resultTableNames = new List<string>();
 
-			if (schemaTable == default)
+			if (_schemaTable == default)
 			{
 				for (var columnOrdinal = 0; columnOrdinal < _reader.FieldCount; columnOrdinal++)
 				{
@@ -355,12 +443,13 @@ namespace Eshava.Storm
 					{
 						if (!Settings.IgnoreDuplicatedColumns)
 						{
-							columnCache[columnName].Add(columnOrdinal);
+							columnCache[columnName].Add((columnOrdinal, Type.GetType(_reader.GetDataTypeName(columnOrdinal))));
 						}
 					}
 					else
 					{
-						columnCache.Add(columnName, new List<int> { columnOrdinal });
+						columnCache.Add(columnName, new List<(int Ordinal, Type DataType)> { (columnOrdinal, Type.GetType(_reader.GetDataTypeName(columnOrdinal))) });
+						columnDataTypeCache.Add(columnName, new List<Type> { });
 					}
 				}
 			}
@@ -368,10 +457,12 @@ namespace Eshava.Storm
 			{
 				for (var columnOrdinal = 0; columnOrdinal < _reader.FieldCount; columnOrdinal++)
 				{
-					foreach (DataRow row in schemaTable.Rows)
+					foreach (DataRow row in _schemaTable.Rows)
 					{
 						if (Convert.ToInt32(row["ColumnOrdinal"]) == columnOrdinal)
 						{
+							var columnDataType = (Type)row["DataType"];
+
 							var isExpression = Convert.ToBoolean(row["IsExpression"]);
 							var tableName = row["BaseTableName"]?.ToString();
 							var columnName = row["ColumnName"]?.ToString();
@@ -390,18 +481,18 @@ namespace Eshava.Storm
 
 							if (columnCache.ContainsKey(name))
 							{
-								columnCache[name].Add(columnOrdinal);
+								columnCache[name].Add((columnOrdinal, columnDataType));
 							}
 							else
 							{
-								columnCache.Add(name, new List<int> { columnOrdinal });
+								columnCache.Add(name, new List<(int Ordinal, Type DataType)> { (columnOrdinal, columnDataType) });
 							}
 
 							break;
 						}
 					}
 
-					foreach (DataRow row in schemaTable.Rows)
+					foreach (DataRow row in _schemaTable.Rows)
 					{
 						resultTableNames.Add(row["BaseTableName"].ToString());
 					}
