@@ -461,7 +461,12 @@ namespace Eshava.Storm
 					{
 						if (Convert.ToInt32(row["ColumnOrdinal"]) == columnOrdinal)
 						{
-							var columnDataType = (Type)row["DataType"];
+							Type columnDataType = null;
+							var dataType = row["DataType"];
+							if (dataType != DBNull.Value)
+							{
+								columnDataType = dataType as Type;
+							}
 
 							var isExpression = Convert.ToBoolean(row["IsExpression"]);
 							var tableName = row["BaseTableName"]?.ToString();
