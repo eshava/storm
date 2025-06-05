@@ -22,6 +22,7 @@ namespace Eshava.Storm
 			DefaultKeyColumnValueGeneration = DatabaseGeneratedOption.None;
 			EnableDateTimeHighAccuracy = false;
 			RestrictToRegisteredModels = false;
+			EnableValueReadingBasedOnTableAliasOccurrence = false;
 		}
 
 		/// <summary>
@@ -50,5 +51,13 @@ namespace Eshava.Storm
 		/// All models must be explicitly registered by a DbConfiguration or by TypeAnalyzer.Register<>() to be used in the mapper.
 		/// </summary>
 		public static bool RestrictToRegisteredModels { get; set; }
+
+		/// <summary>
+		/// Affects the reading of the property/column values in object mapper
+		/// If true, column are determinated based on first table alias occurrence
+		/// If false, column are determinated based on table alias/column occurence in sql query (query analysis)
+		/// Default: false
+		/// </summary>
+		public static bool EnableValueReadingBasedOnTableAliasOccurrence { get; set; }
 	}
 }

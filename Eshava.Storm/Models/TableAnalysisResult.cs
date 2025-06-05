@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Eshava.Storm.Models
 {
@@ -8,7 +7,8 @@ namespace Eshava.Storm.Models
 		public Dictionary<string, IList<string>> TableAliases { get; set; }
 		public Dictionary<string, int> AliasOccurrences { get; set; }
 
-		public Dictionary<string, IList<(int Ordinal, Type DataType)>> ColumnCache { get; set; }
+		public Dictionary<string, IList<ColumnCacheItem>> ColumnCache { get; set; }
 		public IEnumerable<string> ResultTableNames { get; set; }
+		public string SqlQuery { get; set; }
 	}
 }

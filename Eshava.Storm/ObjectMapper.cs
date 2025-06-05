@@ -88,6 +88,15 @@ namespace Eshava.Storm
 					continue;
 				}
 
+				if (!Settings.EnableValueReadingBasedOnTableAliasOccurrence)
+				{
+					var column = _tableAnalysisResult.ColumnCache[fullColumnName].FirstOrDefault(c => c.TableAlias == requestedTableName.Alias);
+					if (column is not null)
+					{
+						return column.DataType;
+					}
+				}
+
 				var aliasOccurrence = _tableAnalysisResult.AliasOccurrences[requestedTableName.Alias];
 				if (aliasOccurrence >= _tableAnalysisResult.ColumnCache[fullColumnName].Count)
 				{
@@ -301,6 +310,22 @@ namespace Eshava.Storm
 					continue;
 				}
 
+				if (!Settings.EnableValueReadingBasedOnTableAliasOccurrence)
+				{
+					var column = _tableAnalysisResult.ColumnCache[fullColumnName].FirstOrDefault(c => c.TableAlias == requestedTableName.Alias);
+					if (column is not null)
+					{
+						information.ReaderAccessItems.Add(new ReaderAccessItem
+						{
+							Ordinal = column.Ordinal,
+							Instance = information.Instance,
+							PropertyInfo = property?.PropertyInfo
+						});
+
+						continue;
+					}
+				}
+
 				var aliasOccurrence = _tableAnalysisResult.AliasOccurrences[requestedTableName.Alias];
 				if (aliasOccurrence >= _tableAnalysisResult.ColumnCache[fullColumnName].Count)
 				{
@@ -365,38 +390,28 @@ namespace Eshava.Storm
 				return;
 			}
 
-			//var sqlHashCode = sql.GetHashCode();
-			//var tableAnalysisResult = ReaderInformationCache.GetReaderTableAnalysisResult(sqlHashCode);
-			//if (tableAnalysisResult != default)
-			//{
-			//	_tableAnalysisResult = tableAnalysisResult;
-
-			//	return;
-			//}
-
 			var tableAliases = sql.GetTableAliases();
 			var aliasOccurrences = CalculateTableAliasUsage(sql, tableAliases);
 
 			var tableAnalysisResult = new TableAnalysisResult
 			{
 				TableAliases = tableAliases,
-				AliasOccurrences = aliasOccurrences
+				AliasOccurrences = aliasOccurrences.Occurrences,
+				SqlQuery = aliasOccurrences.SqlQuery
 			};
-
-			//ReaderInformationCache.AddTableAnalysisResult(sqlHashCode, tableAnalysisResult);
 
 			_tableAnalysisResult = tableAnalysisResult;
 		}
 
-		private Dictionary<string, int> CalculateTableAliasUsage(string sql, Dictionary<string, IList<string>> tableAliases)
+		private (string SqlQuery, Dictionary<string, int> Occurrences) CalculateTableAliasUsage(string sql, Dictionary<string, IList<string>> tableAliases)
 		{
 			if (sql.IsNullOrEmpty())
 			{
-				return null;
+				return (null, null);
 			}
 
 			sql = sql.Replace("\r", "")
-					 .Replace("\n", "")
+					 .Replace("\n", " ")
 					 .Replace("\t", " ")
 					 .ToLower();
 
@@ -414,7 +429,7 @@ namespace Eshava.Storm
 				}
 			}
 
-			return resultAliasOccurrences;
+			return (sql, resultAliasOccurrences);
 		}
 
 		private void CalculateColumnCache()
@@ -429,9 +444,9 @@ namespace Eshava.Storm
 				_schemaTable = _reader.GetSchemaTable();
 			}
 
-			var columnCache = new Dictionary<string, IList<(int Ordinal, Type DataType)>>();
+			var columnCache = new Dictionary<string, IList<ColumnCacheItem>>();
 			var columnDataTypeCache = new Dictionary<string, IList<Type>>();
-			var resultTableNames = new List<string>();
+			var resultTableNames = new HashSet<string>();
 
 			if (_schemaTable == default)
 			{
@@ -443,13 +458,13 @@ namespace Eshava.Storm
 					{
 						if (!Settings.IgnoreDuplicatedColumns)
 						{
-							columnCache[columnName].Add((columnOrdinal, Type.GetType(_reader.GetDataTypeName(columnOrdinal))));
+							columnCache[columnName].Add(new ColumnCacheItem(columnOrdinal, Type.GetType(_reader.GetDataTypeName(columnOrdinal)), columnName, "*"));
 						}
 					}
 					else
 					{
-						columnCache.Add(columnName, new List<(int Ordinal, Type DataType)> { (columnOrdinal, Type.GetType(_reader.GetDataTypeName(columnOrdinal))) });
-						columnDataTypeCache.Add(columnName, new List<Type> { });
+						columnCache.Add(columnName, [new ColumnCacheItem(columnOrdinal, Type.GetType(_reader.GetDataTypeName(columnOrdinal)), columnName, "*")]);
+						columnDataTypeCache.Add(columnName, []);
 					}
 				}
 			}
@@ -482,15 +497,18 @@ namespace Eshava.Storm
 								columnName = "none";
 							}
 
-							var name = $"{tableName.ToLower()}.{columnName.ToLower()}";
+							tableName = tableName.ToLower();
+							columnName = columnName.ToLower();
+
+							var name = $"{tableName}.{columnName}";
 
 							if (columnCache.ContainsKey(name))
 							{
-								columnCache[name].Add((columnOrdinal, columnDataType));
+								columnCache[name].Add(new ColumnCacheItem(columnOrdinal, columnDataType, columnName, tableName));
 							}
 							else
 							{
-								columnCache.Add(name, new List<(int Ordinal, Type DataType)> { (columnOrdinal, columnDataType) });
+								columnCache.Add(name, [new ColumnCacheItem(columnOrdinal, columnDataType, columnName, tableName)]);
 							}
 
 							break;
@@ -499,13 +517,51 @@ namespace Eshava.Storm
 
 					foreach (DataRow row in _schemaTable.Rows)
 					{
-						resultTableNames.Add(row["BaseTableName"].ToString());
+						var baseTableName = row["BaseTableName"].ToString();
+						if (!resultTableNames.Contains(baseTableName))
+						{
+							resultTableNames.Add(baseTableName);
+						}
 					}
 				}
 			}
 
+			if (!Settings.EnableValueReadingBasedOnTableAliasOccurrence && !_tableAnalysisResult.SqlQuery.IsNullOrEmpty())
+			{
+				foreach (var item in columnCache)
+				{
+					var firstOccurrence = item.Value[0];
+					if (firstOccurrence.TableName == "none" || firstOccurrence.TableName == "*" || firstOccurrence.ColumnName == "none")
+					{
+						continue;
+					}
+
+					var tableAlias = _tableAnalysisResult.TableAliases
+						.Where(alias => alias.Value.Contains(firstOccurrence.TableName))
+						.Select(alias => alias.Key)
+						.ToList();
+
+					var collumnOccurrences = tableAlias
+						.Select(alias => (Alias: alias, Index: _tableAnalysisResult.SqlQuery.IndexOf($"{alias}.{firstOccurrence.ColumnName}")))
+						.Where(occurence => occurence.Index >= 0)
+						.OrderBy(occurence => occurence.Index)
+						.ToList();
+
+					for (var columnIndex = 0; columnIndex < item.Value.Count; columnIndex++)
+					{
+						if (collumnOccurrences.Count <= columnIndex)
+						{
+							break;
+						}
+
+						item.Value[columnIndex].TableAlias = collumnOccurrences[columnIndex].Alias;
+					}
+
+				}
+			}
+
 			_tableAnalysisResult.ColumnCache = columnCache;
-			_tableAnalysisResult.ResultTableNames = resultTableNames.Distinct().ToList();
+			_tableAnalysisResult.ResultTableNames = resultTableNames.ToList();
 		}
 
 		private bool ShouldMapClass<T>()
