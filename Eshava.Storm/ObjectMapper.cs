@@ -542,7 +542,7 @@ namespace Eshava.Storm
 						.ToList();
 
 					var collumnOccurrences = tableAlias
-						.Select(alias => (Alias: alias, Index: _tableAnalysisResult.SqlQuery.IndexOf($"{alias}.{firstOccurrence.ColumnName}")))
+						.Select(alias => (Alias: alias, Index: IndexOf(_tableAnalysisResult.SqlQuery, alias, firstOccurrence.ColumnName)))
 						.Where(occurence => occurence.Index >= 0)
 						.OrderBy(occurence => occurence.Index)
 						.ToList();
@@ -562,6 +562,14 @@ namespace Eshava.Storm
 
 			_tableAnalysisResult.ColumnCache = columnCache;
 			_tableAnalysisResult.ResultTableNames = resultTableNames.ToList();
+		}
+
+		private static int IndexOf(string sql, string tableAlias, string columnName)
+		{
+			var indexWithSpace = sql.IndexOf($"{tableAlias}.{columnName} ");
+			var indexWithComma = sql.IndexOf($"{tableAlias}.{columnName},");
+
+			return Math.Max(indexWithSpace, indexWithComma);
 		}
 
 		private bool ShouldMapClass<T>()
